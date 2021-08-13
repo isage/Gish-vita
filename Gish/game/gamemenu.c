@@ -161,6 +161,9 @@ void postgamemenu(void)
       }
     }
 
+  savescores();
+  saveplayers();
+
   if (menuitem[0].active) {
     game.exit=GAMEEXIT_EXITGAME;
   }
@@ -176,6 +179,9 @@ void pregamemenu(void)
   int simtimer;
   int simcount;
   int startdelay;
+
+  savescores();
+  saveplayers();
 
   game.exit=GAMEEXIT_NONE;
 
@@ -268,6 +274,8 @@ void pregamemenu(void)
     if (menuitem[1].active)// || startdelay>=150)
       {
       loadstorylevel(game.levelnum);
+      savescores();
+      saveplayers();
 
       gameloop();
 
@@ -434,6 +442,9 @@ void pregamemenu(void)
     if (game.exit==GAMEEXIT_EXITGAME)
       menuitem[0].active=1;
     }
+
+  savescores();
+  saveplayers();
 
   resetmenuitems();
   }

@@ -85,6 +85,7 @@ add_executable(${TARGET_NAME} ${GISH_SOURCES})
 
 add_definitions("-Dmemcpy=sceClibMemcpy")
 add_definitions("-Dmemcmp=sceClibMemcmp")
+add_definitions("-marm -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -ftree-vectorize -ffast-math -fsigned-char")
 
 target_link_libraries(${TARGET_NAME}
     SDL2::SDL2-static
@@ -93,6 +94,7 @@ target_link_libraries(${TARGET_NAME}
     vorbis
     ogg
     pthread
+    mathneon
     z
     m
     SceAudio_stub

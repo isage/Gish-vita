@@ -25,27 +25,32 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <string.h>
 #include <math.h>
+#include <math_neon.h>
 
-static INLINE float dotproduct(float *vec,float *vec2)
+
+static INLINE float dotproduct(float vec[3],float vec2[3])
 {
-	return(vec[0]*vec2[0]+vec[1]*vec2[1]+vec[2]*vec2[2]);
+    return dot3_neon(vec, vec2);
+//	return(vec[0]*vec2[0]+vec[1]*vec2[1]+vec[2]*vec2[2]);
 }
 
-static INLINE void crossproduct(float *result,float *vec,float *vec2)
+static INLINE void crossproduct(float result[3],float vec[3],float vec2[3])
 {
-	result[0]=vec2[1]*vec[2]-vec2[2]*vec[1];
-	result[1]=vec2[2]*vec[0]-vec2[0]*vec[2];
-	result[2]=vec2[0]*vec[1]-vec2[1]*vec[0];
+//	result[0]=vec2[1]*vec[2]-vec2[2]*vec[1];
+//	result[1]=vec2[2]*vec[0]-vec2[0]*vec[2];
+//	result[2]=vec2[0]*vec[1]-vec2[1]*vec[0];
+    cross3_neon(vec2, vec, result);
 }
 
 static INLINE float vectorlength(float *vec)
 {
-	return(sqrt(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]));
+	return(sqrtf_neon(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]));
 }
 
-static INLINE void normalizevector(float *result,float *vec)
+static INLINE void normalizevector(float result[3],float vec[3])
 {
-	float vectorlengthvalue;
+    normalize3_neon(vec, result);
+/*	float vectorlengthvalue;
 
 	vectorlengthvalue=vectorlength(vec);
 	if (vectorlengthvalue!=0.0f)
@@ -60,7 +65,7 @@ static INLINE void normalizevector(float *result,float *vec)
 		result[0]=0.0f;
 		result[1]=0.0f;
 		result[2]=0.0f;
-	}
+	}*/
 }
 
 static INLINE void copyvector(float *result,float *vec)
@@ -75,9 +80,12 @@ static INLINE void negvector(float *result,float *vec)
 	result[2]=-vec[2];
 }
 
-static INLINE void zerovector(float *result)
+static INLINE void zerovector(float result[3])
 {
-	memset(result,0,12);
+	result[0]=0;
+	result[1]=0;
+	result[2]=0;
+//	memset(result,0,12);
 }
 
 static INLINE void addvectors(float *result,float *vec,float *vec2)

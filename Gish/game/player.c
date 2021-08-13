@@ -264,6 +264,29 @@ void saveplayers(void)
   FILE *fp;
   char path[PATH_MAX];
 
+    player[playernum].levelnum=game.levelnum;
+      player[playernum].totalscore=game.totalscore;
+      player[playernum].numoflives=game.numoflives;
+      if (player[playernum].highscore<player[playernum].totalscore)
+        player[playernum].highscore=player[playernum].totalscore;
+
+      if (player[playernum].levelnum==35)
+        {
+        if (player[playernum].difficulty==1 || player[playernum].difficulty==2)
+          player[playernum].unlock[0]=1;
+        if (player[playernum].difficulty==2)
+          player[playernum].unlock[1]=1;
+        if (player[playernum].difficulty==3)
+          player[playernum].unlock[2]=1;
+        if (player[playernum].difficulty==4)
+          player[playernum].unlock[3]=1;
+        player[playernum].levelnum=0;
+        player[playernum].totalscore=0;
+        player[playernum].numoflives=5;
+        player[playernum].gamepassed=1;
+        }
+
+
   if ((fp=fopen(userpath(path,"gish.pla"),"wb"))!=NULL)
     {
     version=3;
