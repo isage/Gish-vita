@@ -20,22 +20,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "../config.h"
-
 #include "../video/opengl.h"
 
 #if defined(LINUX) || defined(MAC)
-  #include <unistd.h>
+#include <unistd.h>
 #endif
 
-#include <stdio.h>
-
-#include "../game/replay.h"
 #include "../game/custom.h"
 #include "../game/english.h"
 #include "../game/game.h"
-#include "../game/mainmenu.h"
 #include "../game/gameobject.h"
+#include "../game/mainmenu.h"
 #include "../game/player.h"
+#include "../game/replay.h"
 #include "../game/setup.h"
 #include "../input/joystick.h"
 #include "../input/keyboard.h"
@@ -43,111 +40,112 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../menu/menu.h"
 #include "../sdl/event.h"
 #include "../sdl/file.h"
-#include "../video/text.h"
 #include "../sdl/video.h"
+#include "../video/text.h"
+
+#include <stdio.h>
 
 int numofreplayframes;
 _replayframe replayframe[65536];
 
 void saveinputs(void)
-  {
-  if (numofreplayframes>=65535)
+{
+  if (numofreplayframes >= 65535)
     return;
 
-  replayframe[numofreplayframes].button=object[0].button;
-  if (object[0].axis[0]==-1.0f)
-    replayframe[numofreplayframes].button|=16;
-  if (object[0].axis[0]==1.0f)
-    replayframe[numofreplayframes].button|=32;
-  if (object[0].axis[1]==-1.0f)
-    replayframe[numofreplayframes].button|=64;
-  if (object[0].axis[1]==1.0f)
-    replayframe[numofreplayframes].button|=128;
+  replayframe[numofreplayframes].button = object[0].button;
+  if (object[0].axis[0] == -1.0f)
+    replayframe[numofreplayframes].button |= 16;
+  if (object[0].axis[0] == 1.0f)
+    replayframe[numofreplayframes].button |= 32;
+  if (object[0].axis[1] == -1.0f)
+    replayframe[numofreplayframes].button |= 64;
+  if (object[0].axis[1] == 1.0f)
+    replayframe[numofreplayframes].button |= 128;
   numofreplayframes++;
-  }
+}
 
 void loadinputs(void)
-  {
-  if (numofreplayframes>=65535)
+{
+  if (numofreplayframes >= 65535)
     return;
 
-  object[0].axis[0]=0.0f;
-  object[0].axis[1]=0.0f;
-  if ((replayframe[numofreplayframes].button&16)==16)
-    object[0].axis[0]=-1.0f;
-  if ((replayframe[numofreplayframes].button&32)==32)
-    object[0].axis[0]=1.0f;
-  if ((replayframe[numofreplayframes].button&64)==64)
-    object[0].axis[1]=-1.0f;
-  if ((replayframe[numofreplayframes].button&128)==128)
-    object[0].axis[1]=1.0f;
-  object[0].button=replayframe[numofreplayframes].button&15;
+  object[0].axis[0] = 0.0f;
+  object[0].axis[1] = 0.0f;
+  if ((replayframe[numofreplayframes].button & 16) == 16)
+    object[0].axis[0] = -1.0f;
+  if ((replayframe[numofreplayframes].button & 32) == 32)
+    object[0].axis[0] = 1.0f;
+  if ((replayframe[numofreplayframes].button & 64) == 64)
+    object[0].axis[1] = -1.0f;
+  if ((replayframe[numofreplayframes].button & 128) == 128)
+    object[0].axis[1] = 1.0f;
+  object[0].button = replayframe[numofreplayframes].button & 15;
   numofreplayframes++;
-  }
+}
 
 void savereplay(int levelnum)
-  {
+{
   int count;
   int version;
   char filename[32];
   char filepath[256];
   FILE *fp;
 
-  count=0;
-  while (count<12 && player[playernum].name[count]!=0)
-    {
-    filename[count]=player[playernum].name[count];
+  count = 0;
+  while (count < 12 && player[playernum].name[count] != 0)
+  {
+    filename[count] = player[playernum].name[count];
     count++;
-    }
-  filename[count]='-';
+  }
+  filename[count] = '-';
   count++;
-  if (levelnum<100)
-    {
-    filename[count]='C';
+  if (levelnum < 100)
+  {
+    filename[count] = 'C';
     count++;
-    filename[count]=48+levelnum/10;
+    filename[count] = 48 + levelnum / 10;
     count++;
-    filename[count]=48+levelnum%10;
+    filename[count] = 48 + levelnum % 10;
     count++;
-    }
+  }
   else
-    {
-    filename[count]=48+(levelnum-100)/10;
+  {
+    filename[count] = 48 + (levelnum - 100) / 10;
     count++;
-    filename[count]=48+(levelnum-100)%10;
+    filename[count] = 48 + (levelnum - 100) % 10;
     count++;
-    }
-  filename[count]='.';
+  }
+  filename[count] = '.';
   count++;
-  filename[count]='g';
+  filename[count] = 'g';
   count++;
-  filename[count]='r';
+  filename[count] = 'r';
   count++;
-  filename[count]='e';
+  filename[count] = 'e';
   count++;
-  filename[count]=0;
+  filename[count] = 0;
   count++;
 
   strcpy(filepath, gishDataPath);
   strcat(filepath, "replay/");
   strcat(filepath, filename);
 
-  if ((fp=fopen(filepath,"wb"))!=NULL)
-    {
-    version=1;
-    fwrite2(&version,4,1,fp);
-    fwrite2(&levelnum,4,1,fp);
-    fwrite2(&numofreplayframes,4,1,fp);
-    if (numofreplayframes<65536)
-    for (count=0;count<numofreplayframes;count++)
-      fwrite2(&replayframe[count].button,1,1,fp);
+  if ((fp = fopen(filepath, "wb")) != NULL)
+  {
+    version = 1;
+    fwrite2(&version, 4, 1, fp);
+    fwrite2(&levelnum, 4, 1, fp);
+    fwrite2(&numofreplayframes, 4, 1, fp);
+    if (numofreplayframes < 65536)
+      for (count = 0; count < numofreplayframes; count++)
+        fwrite2(&replayframe[count].button, 1, 1, fp);
     fclose(fp);
-    }
-
   }
+}
 
 int loadreplay(char *filename)
-  {
+{
   int count;
   int version;
   int levelnum;
@@ -155,106 +153,105 @@ int loadreplay(char *filename)
   char filepath[256];
   FILE *fp;
 
-  count=0;
-  while (count<16 && filename[count]!=0 && filename[count]!='.')
-    {
-    filenametemp[count]=filename[count];
+  count = 0;
+  while (count < 16 && filename[count] != 0 && filename[count] != '.')
+  {
+    filenametemp[count] = filename[count];
     count++;
-    }
-  filenametemp[count]='.';
+  }
+  filenametemp[count] = '.';
   count++;
-  filenametemp[count]='g';
+  filenametemp[count] = 'g';
   count++;
-  filenametemp[count]='r';
+  filenametemp[count] = 'r';
   count++;
-  filenametemp[count]='e';
+  filenametemp[count] = 'e';
   count++;
-  filenametemp[count]=0;
+  filenametemp[count] = 0;
   count++;
 
   strcpy(filepath, gishDataPath);
   strcat(filepath, "replay/");
   strcat(filepath, filenametemp);
 
-  levelnum=-1;
+  levelnum = -1;
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fread2(&version, 4, 1, fp);
+    if (version == 1)
     {
-    fread2(&version,4,1,fp);
-    if (version==1)
-      {
-      fread2(&levelnum,4,1,fp);
-      fread2(&numofreplayframes,4,1,fp);
-      if (numofreplayframes<65536)
-      for (count=0;count<numofreplayframes;count++)
-        fread2(&replayframe[count].button,1,1,fp);
-      }
-    fclose(fp);
+      fread2(&levelnum, 4, 1, fp);
+      fread2(&numofreplayframes, 4, 1, fp);
+      if (numofreplayframes < 65536)
+        for (count = 0; count < numofreplayframes; count++)
+          fread2(&replayframe[count].button, 1, 1, fp);
     }
-
-
-  return(levelnum);
+    fclose(fp);
   }
 
+  return (levelnum);
+}
+
 void replaymenu(void)
-  {
-  int count,count2;
+{
+  int count, count2;
   int changeddir;
   int numoffiles;
   int pagenum;
 
-  listfiles("replay", "*.gre",levellist,0);
+  listfiles("replay", "*.gre", levellist, 0);
 
-  numoffiles=0;
-  while (levellist[numoffiles][0]!=0)
+  numoffiles = 0;
+  while (levellist[numoffiles][0] != 0)
     numoffiles++;
 
-  pagenum=0;
+  pagenum = 0;
 
   resetmenuitems();
 
-  joymenunum=1;
+  joymenunum = 1;
 
   while (!menuitem[0].active && !windowinfo.shutdown)
-    {
-    glClearColor(0.0f,0.0f,0.0f,0.0f);
+  {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    numofmenuitems=0;
-    createmenuitem(TXT_EXIT,0,0,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_HOTKEY,SCAN_ESC);
+    numofmenuitems = 0;
+    createmenuitem(TXT_EXIT, 0, 0, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_HOTKEY, SCAN_ESC);
 
-    count=0;
-    for (count2=0;count2<8;count2++)
-    if (pagenum+count<numoffiles)
+    count = 0;
+    for (count2 = 0; count2 < 8; count2++)
+      if (pagenum + count < numoffiles)
       {
-      createmenuitem(levellist[pagenum+count],64,320+count2*12,12,1.0f,1.0f,1.0f,1.0f);
-      count++;
+        createmenuitem(levellist[pagenum + count], 64, 320 + count2 * 12, 12, 1.0f, 1.0f, 1.0f, 1.0f);
+        count++;
       }
-    for (count2=0;count2<8;count2++)
-    if (pagenum+count<numoffiles)
+    for (count2 = 0; count2 < 8; count2++)
+      if (pagenum + count < numoffiles)
       {
-      createmenuitem(levellist[pagenum+count],256,320+count2*12,12,1.0f,1.0f,1.0f,1.0f);
-      count++;
+        createmenuitem(levellist[pagenum + count], 256, 320 + count2 * 12, 12, 1.0f, 1.0f, 1.0f, 1.0f);
+        count++;
       }
-    for (count2=0;count2<8;count2++)
-    if (pagenum+count<numoffiles)
+    for (count2 = 0; count2 < 8; count2++)
+      if (pagenum + count < numoffiles)
       {
-      createmenuitem(levellist[pagenum+count],448,320+count2*12,12,1.0f,1.0f,1.0f,1.0f);
-      count++;
+        createmenuitem(levellist[pagenum + count], 448, 320 + count2 * 12, 12, 1.0f, 1.0f, 1.0f, 1.0f);
+        count++;
       }
 
-    createmenuitem(TXT_PAGE_UP,(304|TEXT_END),416,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_HOTKEY,SCAN_PAGEUP);
-    setmenuitem(MO_SET,&pagenum,pagenum-24);
-    if (pagenum<24)
-      setmenuitem(MO_HIGHLIGHT,0);
+    createmenuitem(TXT_PAGE_UP, (304 | TEXT_END), 416, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_HOTKEY, SCAN_PAGEUP);
+    setmenuitem(MO_SET, &pagenum, pagenum - 24);
+    if (pagenum < 24)
+      setmenuitem(MO_HIGHLIGHT, 0);
 
-    createmenuitem(TXT_PAGE_DOWN,320,416,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_HOTKEY,SCAN_PAGEDOWN);
-    setmenuitem(MO_SET,&pagenum,pagenum+24);
-    if (pagenum+24>=numoffiles)
-      setmenuitem(MO_HIGHLIGHT,0);
+    createmenuitem(TXT_PAGE_DOWN, 320, 416, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_HOTKEY, SCAN_PAGEDOWN);
+    setmenuitem(MO_SET, &pagenum, pagenum + 24);
+    if (pagenum + 24 >= numoffiles)
+      setmenuitem(MO_HIGHLIGHT, 0);
 
     checksystemmessages();
     checkkeyboard();
@@ -264,14 +261,14 @@ void replaymenu(void)
 
     setuptextdisplay();
 
-    glColor4f(1.0f,1.0f,1.0f,1.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     displaybackground(620);
 
-    drawtext(TXT_REPLAY_MODE,(320|TEXT_CENTER),304,16,1.0f,1.0f,1.0f,1.0f);
+    drawtext(TXT_REPLAY_MODE, (320 | TEXT_CENTER), 304, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
     drawmenuitems();
 
-    drawmousecursor(768+font.cursornum,mouse.x,mouse.y,16,1.0f,1.0f,1.0f,1.0f);
+    drawmousecursor(768 + font.cursornum, mouse.x, mouse.y, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
 #if defined(PC_GLES)
     eglSwapBuffers(eglDisplay, eglSurface);
@@ -279,31 +276,30 @@ void replaymenu(void)
     SDL_GL_SwapWindow(globalwindow);
 #endif
 
-    for (count=1;count<=24;count++)
-    if (pagenum+count-1<numoffiles)
-    if (menuitem[count].active)
-      {
-      game.editing=0;
-      game.levelnum=0;
-      count2=loadreplay(levellist[pagenum+count-1]);
-
-      if (count2!=-1)
+    for (count = 1; count <= 24; count++)
+      if (pagenum + count - 1 < numoffiles)
+        if (menuitem[count].active)
         {
-        if (count2<100)
-          loadcollectionlevel(count2);
-        else
-          {
-          game.levelnum=count2-100;
-          loadstorylevel(game.levelnum);
-          }
-        game.playreplay=1;
-        gameloop();
-        game.playreplay=0;
-        }
-      joymenunum=count;
-      }
-    }
+          game.editing  = 0;
+          game.levelnum = 0;
+          count2        = loadreplay(levellist[pagenum + count - 1]);
 
-  resetmenuitems();
+          if (count2 != -1)
+          {
+            if (count2 < 100)
+              loadcollectionlevel(count2);
+            else
+            {
+              game.levelnum = count2 - 100;
+              loadstorylevel(game.levelnum);
+            }
+            game.playreplay = 1;
+            gameloop();
+            game.playreplay = 0;
+          }
+          joymenunum = count;
+        }
   }
 
+  resetmenuitems();
+}

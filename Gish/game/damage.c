@@ -19,18 +19,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "../config.h"
-
 #include "../game/damage.h"
-#include "../game/level.h"
-#include "../game/gameobject.h"
 
-void applydamageobject(int objectnum,int hitpoints)
-  {
-  if (level.gametype<10)
-  if (object[objectnum].damagedelay<=0)
+#include "../config.h"
+#include "../game/gameobject.h"
+#include "../game/level.h"
+
+void applydamageobject(int objectnum, int hitpoints)
+{
+  if (level.gametype < 10)
+    if (object[objectnum].damagedelay <= 0)
     {
-    object[objectnum].hitpoints-=hitpoints;
-    object[objectnum].damagedelay=50;
+      object[objectnum].hitpoints -= hitpoints;
+      object[objectnum].damagedelay = 50;
     }
-  }
+}

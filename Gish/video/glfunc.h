@@ -21,13 +21,15 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-void setupperspectiveviewport(int viewportx,int viewporty,int viewportwidth,int viewportheight,float nearplane,float farplane);
-void setuporthoviewport(int viewportx,int viewporty,int viewportwidth,int viewportheight,float width,float height,float length);
-void setupviewpoint(float *position,float orientation[3][3]);
-void setupobjectrender(float *position,float orientation[3][3]);
+void setupperspectiveviewport(int viewportx, int viewporty, int viewportwidth, int viewportheight, float nearplane,
+                              float farplane);
+void setuporthoviewport(int viewportx, int viewporty, int viewportwidth, int viewportheight, float width, float height,
+                        float length);
+void setupviewpoint(float *position, float orientation[3][3]);
+void setupobjectrender(float *position, float orientation[3][3]);
 void screenshot(void);
 void setupglext(void);
 
-extern int screenshotbuffer[1280*960];
+extern int screenshotbuffer[1280 * 960];
 
 #endif /* GISH_VIDEO_GLFUNC_H */

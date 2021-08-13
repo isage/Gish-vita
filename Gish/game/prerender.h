@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void setuprenderobjects(void);
 int setuprenderobjectlight(int objectnum);
-int setuprenderropelight(int ropenum,float radius);
+int setuprenderropelight(int ropenum, float radius);
 
 typedef struct
-  {
+{
   int type;
   int texturenum;
   int objectnum;
@@ -43,7 +43,7 @@ typedef struct
   float edgenormal[32][3];
   float depth;
   float alpha;
-  } _objectrender;
+} _objectrender;
 
 extern int numofobjectrenders;
 extern _objectrender objectrender[512];

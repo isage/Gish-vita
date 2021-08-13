@@ -21,19 +21,20 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-void soundsimulation(float position[3],float orientation[3][3]);
-void playsound(int buffernum,float position[3],float velocity[3],float volume,int looping,float pitch,int objectnum,int objectsoundnum);
+void soundsimulation(float position[3], float orientation[3][3]);
+void playsound(int buffernum, float position[3], float velocity[3], float volume, int looping, float pitch,
+               int objectnum, int objectsoundnum);
 void deletesound(int soundnum);
 
 typedef struct
-  {
+{
   int buffernum;
   int objectnum;
   int looping;
   int pitchshift;
   unsigned int alname;
   int delay;
-  } _sound;
+} _sound;
 
 extern int numofsounds;
 extern _sound sound[64];

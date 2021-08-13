@@ -32,7 +32,7 @@ void savemappack(void);
 void newmappackmenu(void);
 
 typedef struct
-  {
+{
   int active;
   int numoflevels;
   char filename[32];
@@ -41,16 +41,16 @@ typedef struct
   char levelname[64][32];
   char levelmusic[64][32];
   char ending[16][64];
-  } _mappack;
+} _mappack;
 
 typedef struct
-  {
+{
   int levelnum;
   int numoflives;
   int totalscore;
   int difficulty;
   int highscore;
-  } _playermappack;
+} _playermappack;
 
 extern char levellist[1024][32];
 extern _mappack mappack;

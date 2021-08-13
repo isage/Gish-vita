@@ -19,50 +19,47 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "../config.h"
+#include "../input/mouse.h"
 
+#include "../config.h"
+#include "../sdl/event.h"
 #include "../sdl/sdl.h"
 
 #include <string.h>
 
-#include "../input/mouse.h"
-#include "../sdl/event.h"
-
 _mouse mouse, prevmouse;
 
 void checkmouse(void)
-  {
+{
   Uint8 buttons;
 
-  memcpy(&prevmouse,&mouse,sizeof(mouse));
-  //buttons=SDL_GetRelativeMouseState(&mouse.xdif,&mouse.ydif); 
-  //SDL_PumpEvents();
-  buttons=SDL_GetMouseState(&mouse.x,&mouse.y); 
-  mouse.x=mouse.x*640/windowinfo.resolutionx;
-  mouse.y=mouse.y*480/windowinfo.resolutiony;
+  memcpy(&prevmouse, &mouse, sizeof(mouse));
+  // buttons=SDL_GetRelativeMouseState(&mouse.xdif,&mouse.ydif);
+  // SDL_PumpEvents();
+  buttons = SDL_GetMouseState(&mouse.x, &mouse.y);
+  mouse.x = mouse.x * 640 / windowinfo.resolutionx;
+  mouse.y = mouse.y * 480 / windowinfo.resolutiony;
 
-  mouse.xdif=mouse.x-prevmouse.x;
-  mouse.ydif=mouse.y-prevmouse.y;
+  mouse.xdif = mouse.x - prevmouse.x;
+  mouse.ydif = mouse.y - prevmouse.y;
 
-  if (buttons&SDL_BUTTON(1))
-    mouse.lmb=1;
+  if (buttons & SDL_BUTTON(1))
+    mouse.lmb = 1;
   else
-    mouse.lmb=0;
+    mouse.lmb = 0;
 
-  if (buttons&SDL_BUTTON(3))
-    mouse.rmb=1;
+  if (buttons & SDL_BUTTON(3))
+    mouse.rmb = 1;
   else
-    mouse.rmb=0;
+    mouse.rmb = 0;
 
-  if (mouse.lmb==0 && prevmouse.lmb==1)
-    mouse.lmbr=1;
+  if (mouse.lmb == 0 && prevmouse.lmb == 1)
+    mouse.lmbr = 1;
   else
-    mouse.lmbr=0;
+    mouse.lmbr = 0;
 
-  if (mouse.rmb==0 && prevmouse.rmb==1)
-    mouse.rmbr=1;
+  if (mouse.rmb == 0 && prevmouse.rmb == 1)
+    mouse.rmbr = 1;
   else
-    mouse.rmbr=0;
-  }
-
-
+    mouse.rmbr = 0;
+}

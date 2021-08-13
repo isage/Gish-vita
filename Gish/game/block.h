@@ -27,7 +27,7 @@ void setupblockflags(int blocknum);
 void setupblockalpha(int blocknum);
 
 typedef struct
-  {
+{
   int numoflines;
   float line[64][8];
   float friction;
@@ -39,14 +39,14 @@ typedef struct
   int animation;
   int animationspeed;
   int flags;
-  } _block;
+} _block;
 
 typedef struct
-  {
+{
   int numofverts;
   float vertex[16][2];
   int ivertex[16][2];
-  } _polygontemp;
+} _polygontemp;
 
 extern _block block[1024];
 extern int numofpolygontemps;

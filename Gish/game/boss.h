@@ -21,13 +21,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-void createboss(int type,float position[3]);
+void createboss(int type, float position[3]);
 void bosssimulation(void);
 void bosstimetolive(void);
 void deleteboss(int bossnum);
 
 typedef struct
-  {
+{
   int type;
   float position[3];
   float velocity[3];
@@ -39,7 +39,7 @@ typedef struct
   int frame;
   float size[2];
   float framedelay;
-  } _boss;
+} _boss;
 
 extern int numofbosses;
 extern _boss boss[16];

@@ -19,16 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "../config.h"
-
-#include "../video/opengl.h"
-
-#include "../sdl/sdl.h"
-
 #include "../game/editor.h"
+
+#include "../config.h"
 #include "../game/block.h"
 #include "../game/english.h"
 #include "../game/game.h"
+#include "../game/gametexture.h"
 #include "../game/level.h"
 #include "../game/lighting.h"
 #include "../game/mainmenu.h"
@@ -37,45 +34,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../game/render.h"
 #include "../game/ropeedit.h"
 #include "../game/setup.h"
-#include "../game/gametexture.h"
 #include "../input/keyboard.h"
 #include "../input/mouse.h"
 #include "../math/vector.h"
 #include "../menu/menu.h"
 #include "../sdl/endian.h"
 #include "../sdl/event.h"
+#include "../sdl/sdl.h"
+#include "../sdl/video.h"
 #include "../video/glfunc.h"
+#include "../video/opengl.h"
 #include "../video/text.h"
 #include "../video/texture.h"
-#include "../sdl/video.h"
 
 _editor editor;
 char currentTextureFilename[256];
 
 void editlevel(void)
-  {
-  int count,count2;
-  int x,y;
+{
+  int count, count2;
+  int x, y;
   int simtimer;
   int simcount;
   float vec[3];
 
-  simtimer=SDL_GetTicks();
+  simtimer = SDL_GetTicks();
 
   resetmenuitems();
 
-  joystickmenu=0;
+  joystickmenu = 0;
 
-  editor.active=1;
+  editor.active = 1;
 
   while (!menuitem[0].active && !windowinfo.shutdown)
-    {
-    glClearColor(0.0f,0.0f,0.0f,0.0f);
-    glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
+  {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glStencilMask(~0);
     glClearStencil(0);
-    glClear(GL_COLOR_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-    glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_FALSE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
     glStencilMask(0);
 
     setuptextdisplay();
@@ -84,63 +82,63 @@ void editlevel(void)
 #else
     glColor3fv(level.ambient[3]);
 #endif
-    if (level.background[0]!=0)
+    if (level.background[0] != 0)
       displaybackground(660);
 
-    numofmenuitems=0;
-    createmenuitem("",0,0,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_HOTKEY,SCAN_F1);
-    createmenuitem(TXT_LEVELNAME"     ",(640|TEXT_END),448,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_STRINGINPUT,editor.filename);
-    setmenuitem(MO_HOTKEY,SCAN_ENTER);
-    createmenuitem(TXT_GAMETYPE,(640|TEXT_END),0,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&level.gametype);
-    createmenuitem(TXT_GAMETIME,(640|TEXT_END),32,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&level.time);
-    createmenuitem(TXT_RED"  ",(640|TEXT_END),64,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&level.ambient[editor.mode][0]);
-    createmenuitem(TXT_GREEN,(640|TEXT_END),96,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&level.ambient[editor.mode][1]);
-    createmenuitem(TXT_BLUE" ",(640|TEXT_END),128,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&level.ambient[editor.mode][2]);
-    createmenuitem(TXT_BACKGROUND"     ",(640|TEXT_END),416,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_STRINGINPUT,&level.background);
+    numofmenuitems = 0;
+    createmenuitem("", 0, 0, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_HOTKEY, SCAN_F1);
+    createmenuitem(TXT_LEVELNAME "     ", (640 | TEXT_END), 448, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_STRINGINPUT, editor.filename);
+    setmenuitem(MO_HOTKEY, SCAN_ENTER);
+    createmenuitem(TXT_GAMETYPE, (640 | TEXT_END), 0, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &level.gametype);
+    createmenuitem(TXT_GAMETIME, (640 | TEXT_END), 32, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &level.time);
+    createmenuitem(TXT_RED "  ", (640 | TEXT_END), 64, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &level.ambient[editor.mode][0]);
+    createmenuitem(TXT_GREEN, (640 | TEXT_END), 96, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &level.ambient[editor.mode][1]);
+    createmenuitem(TXT_BLUE " ", (640 | TEXT_END), 128, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &level.ambient[editor.mode][2]);
+    createmenuitem(TXT_BACKGROUND "     ", (640 | TEXT_END), 416, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_STRINGINPUT, &level.background);
 
     checksystemmessages();
     checkkeyboard();
     checkmouse();
     checkmenuitems();
 
-    view.zoom=10.0f;
+    view.zoom = 10.0f;
     if (keyboard[SCAN_EQUALS])
-      view.zoom=20.0f;
+      view.zoom = 20.0f;
     if (keyboard[SCAN_MINUS])
-      view.zoom=5.0f;
+      view.zoom = 5.0f;
 
-    view.zoomx=view.zoom+0.5f;
-    view.zoomy=view.zoom*0.80f+0.5f;
+    view.zoomx = view.zoom + 0.5f;
+    view.zoomy = view.zoom * 0.80f + 0.5f;
 
-    setuporthoviewport(0,0,640,480,view.zoom,view.zoom*0.75f,20.0f);
-    setupviewpoint(view.position,view.orientation);
+    setuporthoviewport(0, 0, 640, 480, view.zoom, view.zoom * 0.75f, 20.0f);
+    setupviewpoint(view.position, view.orientation);
 
     setupframelighting();
 
     setuprenderobjects();
 
-    scalevector(level.ambient[editor.mode],level.ambient[editor.mode],2.0f);
+    scalevector(level.ambient[editor.mode], level.ambient[editor.mode], 2.0f);
 
     if (!editor.showgrid)
       rendershadows();
 
-    if (!editor.showgrid || editor.mode==0)
+    if (!editor.showgrid || editor.mode == 0)
       renderlevelback();
-    if (!editor.showgrid || editor.mode==1)
+    if (!editor.showgrid || editor.mode == 1)
       renderlevel();
     renderobjects();
-    if (!editor.showgrid || editor.mode==2)
+    if (!editor.showgrid || editor.mode == 2)
       renderlevelfore();
 
-    scalevector(level.ambient[editor.mode],level.ambient[editor.mode],0.5f);
+    scalevector(level.ambient[editor.mode], level.ambient[editor.mode], 0.5f);
 
     if (editor.showlines)
       renderlevellines();
@@ -149,99 +147,99 @@ void editlevel(void)
 
     glDisable(GL_TEXTURE_2D);
 
-    for (count=0;count<8;count++)
-      {
+    for (count = 0; count < 8; count++)
+    {
 #if defined(GLES)
 #else
       glBegin(GL_LINES);
 #endif
 
-      if (count==0)
-        glColor4f(0.0f,1.0f,0.0f,1.0f);
-      if (count==1)
-        glColor4f(0.0f,1.0f,1.0f,1.0f);
-      if (count==2)
-        glColor4f(1.0f,1.0f,0.0f,1.0f);
-      if (count==3)
-        glColor4f(1.0f,0.0f,1.0f,1.0f);
-      if (count==4)
-        glColor4f(0.0f,0.5f,0.0f,1.0f);
-      if (count==5)
-        glColor4f(0.0f,0.5f,0.5f,1.0f);
-      if (count==6)
-        glColor4f(0.5f,0.5f,0.0f,1.0f);
-      if (count==7)
-        glColor4f(0.5f,0.0f,0.5f,1.0f);
+      if (count == 0)
+        glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+      if (count == 1)
+        glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
+      if (count == 2)
+        glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
+      if (count == 3)
+        glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
+      if (count == 4)
+        glColor4f(0.0f, 0.5f, 0.0f, 1.0f);
+      if (count == 5)
+        glColor4f(0.0f, 0.5f, 0.5f, 1.0f);
+      if (count == 6)
+        glColor4f(0.5f, 0.5f, 0.0f, 1.0f);
+      if (count == 7)
+        glColor4f(0.5f, 0.0f, 0.5f, 1.0f);
 
 #if defined(GLES)
 #else
-      glVertex3f(level.area[count][0],level.area[count][1],0.0f);
-      glVertex3f(level.area[count][2],level.area[count][1],0.0f);
+      glVertex3f(level.area[count][0], level.area[count][1], 0.0f);
+      glVertex3f(level.area[count][2], level.area[count][1], 0.0f);
 
-      glVertex3f(level.area[count][2],level.area[count][1],0.0f);
-      glVertex3f(level.area[count][2],level.area[count][3],0.0f);
+      glVertex3f(level.area[count][2], level.area[count][1], 0.0f);
+      glVertex3f(level.area[count][2], level.area[count][3], 0.0f);
 
-      glVertex3f(level.area[count][2],level.area[count][3],0.0f);
-      glVertex3f(level.area[count][0],level.area[count][3],0.0f);
+      glVertex3f(level.area[count][2], level.area[count][3], 0.0f);
+      glVertex3f(level.area[count][0], level.area[count][3], 0.0f);
 
-      glVertex3f(level.area[count][0],level.area[count][3],0.0f);
-      glVertex3f(level.area[count][0],level.area[count][1],0.0f);
+      glVertex3f(level.area[count][0], level.area[count][3], 0.0f);
+      glVertex3f(level.area[count][0], level.area[count][1], 0.0f);
 
       glEnd();
 #endif
-      }
+    }
     glEnable(GL_TEXTURE_2D);
 
     setuptextdisplay();
 
-    glBindTexture(GL_TEXTURE_2D,texture[editor.blocknum].glname);
+    glBindTexture(GL_TEXTURE_2D, texture[editor.blocknum].glname);
 
 #if defined(GLES)
 #else
     glBegin(GL_QUADS);
 
-    glColor4f(1.0f,1.0f,1.0f,1.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
-    vec[0]=0.0f;
-    vec[1]=416.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(0.0f,0.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 0.0f;
+    vec[1] = 416.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=64.0f;
-    vec[1]=416.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(1.0f,0.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 64.0f;
+    vec[1] = 416.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=64.0f;
-    vec[1]=480.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(1.0f,1.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 64.0f;
+    vec[1] = 480.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=0.0f;
-    vec[1]=480.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(0.0f,1.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 0.0f;
+    vec[1] = 480.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
     glEnd();
 #endif
-    if (editor.mode==0)
-      drawtext(TXT_BACKGROUND,0,384,16,1.0f,1.0f,1.0f,1.0f);
-    if (editor.mode==1)
-      drawtext(TXT_MIDGROUND,0,384,16,1.0f,1.0f,1.0f,1.0f);
-    if (editor.mode==2)
-      drawtext(TXT_FOREGROUND,0,384,16,1.0f,1.0f,1.0f,1.0f);
-    if (editor.mode==3)
-      drawtext(TXT_WAYBACKGROUND,0,384,16,1.0f,1.0f,1.0f,1.0f);
-    drawtext(TXT_TILESET":/i",0,368,16,1.0f,1.0f,1.0f,1.0f,level.tileset);
-    drawtext(TXT_TILE":/i",0,400,16,1.0f,1.0f,1.0f,1.0f,editor.blocknum);
+    if (editor.mode == 0)
+      drawtext(TXT_BACKGROUND, 0, 384, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    if (editor.mode == 1)
+      drawtext(TXT_MIDGROUND, 0, 384, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    if (editor.mode == 2)
+      drawtext(TXT_FOREGROUND, 0, 384, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    if (editor.mode == 3)
+      drawtext(TXT_WAYBACKGROUND, 0, 384, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    drawtext(TXT_TILESET ":/i", 0, 368, 16, 1.0f, 1.0f, 1.0f, 1.0f, level.tileset);
+    drawtext(TXT_TILE ":/i", 0, 400, 16, 1.0f, 1.0f, 1.0f, 1.0f, editor.blocknum);
 
     drawmenuitems();
 
-    drawmousecursor(768+font.cursornum,mouse.x,mouse.y,16,1.0f,1.0f,1.0f,1.0f);
+    drawmousecursor(768 + font.cursornum, mouse.x, mouse.y, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
 #if defined(PC_GLES)
     eglSwapBuffers(eglDisplay, eglSurface);
@@ -250,435 +248,467 @@ void editlevel(void)
 #endif
 
     if (!menuinputkeyboard)
-      {
+    {
       if (keyboard[SCAN_L] && !prevkeyboard[SCAN_L])
-        editor.showlines^=1;
+        editor.showlines ^= 1;
       if (keyboard[SCAN_K] && !prevkeyboard[SCAN_K])
-        editor.showgrid^=1;
+        editor.showgrid ^= 1;
 
-      x=view.position[0]+(float)(mouse.x-320)/32.0f;
-      y=view.position[1]+(float)(240-mouse.y)/32.0f;
+      x = view.position[0] + (float)(mouse.x - 320) / 32.0f;
+      y = view.position[1] + (float)(240 - mouse.y) / 32.0f;
 
       if (!editor.paste)
-        {
+      {
         if (!keyboard[SCAN_SHIFT])
-          {
+        {
           if (mouse.lmb)
-            setblock(x,y,editor.blocknum);
-          if (mouse.rmb && (editor.editstart[0]==0 && editor.editstart[1]==0))
-            setblock(x,y,0);
-          }
+            setblock(x, y, editor.blocknum);
+          if (mouse.rmb && (editor.editstart[0] == 0 && editor.editstart[1] == 0))
+            setblock(x, y, 0);
+        }
         else
-          {
+        {
           if (mouse.lmb && !prevmouse.lmb)
+          {
+            editor.editstart[0] = x;
+            editor.editstart[1] = y;
+          }
+          if (mouse.lmb && (editor.editstart[0] != 0 || editor.editstart[1] != 0))
+          {
+            if (editor.editstart[0] < x)
             {
-            editor.editstart[0]=x;
-            editor.editstart[1]=y;
+              editor.editarea[0][0] = editor.editstart[0];
+              editor.editarea[1][0] = x;
             }
-          if (mouse.lmb && (editor.editstart[0]!=0 || editor.editstart[1]!=0))
+            else
             {
-            if (editor.editstart[0]<x)
-              {
-              editor.editarea[0][0]=editor.editstart[0];
-              editor.editarea[1][0]=x;
-              }
+              editor.editarea[0][0] = x;
+              editor.editarea[1][0] = editor.editstart[0];
+            }
+            if (editor.editstart[1] < y)
+            {
+              editor.editarea[0][1] = editor.editstart[1];
+              editor.editarea[1][1] = y;
+            }
             else
-              {
-              editor.editarea[0][0]=x;
-              editor.editarea[1][0]=editor.editstart[0];
-              }
-            if (editor.editstart[1]<y)
-              {
-              editor.editarea[0][1]=editor.editstart[1];
-              editor.editarea[1][1]=y;
-              }
-            else
-              {
-              editor.editarea[0][1]=y;
-              editor.editarea[1][1]=editor.editstart[1];
-              }
+            {
+              editor.editarea[0][1] = y;
+              editor.editarea[1][1] = editor.editstart[1];
             }
           }
-        if (editor.editstart[0]!=0 || editor.editstart[1]!=0)
-          {
-          count=-1;
+        }
+        if (editor.editstart[0] != 0 || editor.editstart[1] != 0)
+        {
+          count = -1;
           if (keyboard[SCAN_5])
-            count=0;
+            count = 0;
           if (keyboard[SCAN_6])
-            count=1;
+            count = 1;
           if (keyboard[SCAN_7])
-            count=2;
+            count = 2;
           if (keyboard[SCAN_8])
-            count=3;
-          if (count!=-1)
-            {
+            count = 3;
+          if (count != -1)
+          {
             if (keyboard[SCAN_SHIFT])
-              count+=4;
+              count += 4;
 
-            level.area[count][0]=editor.editarea[0][0];
-            level.area[count][1]=editor.editarea[0][1];
-            level.area[count][2]=editor.editarea[1][0]+1.0f;
-            level.area[count][3]=editor.editarea[1][1]+1.0f;
-            }
+            level.area[count][0] = editor.editarea[0][0];
+            level.area[count][1] = editor.editarea[0][1];
+            level.area[count][2] = editor.editarea[1][0] + 1.0f;
+            level.area[count][3] = editor.editarea[1][1] + 1.0f;
           }
+        }
         if (keyboard[SCAN_ESC] || (!mouse.rmb && prevmouse.rmb))
-          {
-          editor.editstart[0]=0;
-          editor.editstart[1]=0;
-          editor.editarea[0][0]=0;
-          editor.editarea[0][1]=0;
-          editor.editarea[1][0]=0;
-          editor.editarea[1][1]=0;
-          }
+        {
+          editor.editstart[0]   = 0;
+          editor.editstart[1]   = 0;
+          editor.editarea[0][0] = 0;
+          editor.editarea[0][1] = 0;
+          editor.editarea[1][0] = 0;
+          editor.editarea[1][1] = 0;
+        }
         if (keyboard[SCAN_C] && !prevkeyboard[SCAN_C])
-          {
-          editor.copysize[0]=editor.editarea[1][0]-editor.editarea[0][0];
-          editor.copysize[1]=editor.editarea[1][1]-editor.editarea[0][1];
-          for (count=0;count<=editor.copysize[1];count++)
-          for (count2=0;count2<=editor.copysize[0];count2++)
-            editor.copybuffer[count][count2]=getblock(editor.editarea[0][0]+count2,editor.editarea[0][1]+count);
+        {
+          editor.copysize[0] = editor.editarea[1][0] - editor.editarea[0][0];
+          editor.copysize[1] = editor.editarea[1][1] - editor.editarea[0][1];
+          for (count = 0; count <= editor.copysize[1]; count++)
+            for (count2 = 0; count2 <= editor.copysize[0]; count2++)
+              editor.copybuffer[count][count2]
+                  = getblock(editor.editarea[0][0] + count2, editor.editarea[0][1] + count);
 
-          editor.paste=1;
-          editor.editstart[0]=0;
-          editor.editstart[1]=0;
-          editor.editarea[0][0]=0;
-          editor.editarea[0][1]=0;
-          editor.editarea[1][0]=0;
-          editor.editarea[1][1]=0;
-          }
+          editor.paste          = 1;
+          editor.editstart[0]   = 0;
+          editor.editstart[1]   = 0;
+          editor.editarea[0][0] = 0;
+          editor.editarea[0][1] = 0;
+          editor.editarea[1][0] = 0;
+          editor.editarea[1][1] = 0;
+        }
         if (keyboard[SCAN_DELETE] && !prevkeyboard[SCAN_DELETE])
-          {
-          editor.copysize[0]=editor.editarea[1][0]-editor.editarea[0][0];
-          editor.copysize[1]=editor.editarea[1][1]-editor.editarea[0][1];
-          for (count=0;count<=editor.copysize[1];count++)
-          for (count2=0;count2<=editor.copysize[0];count2++)
-            setblock(editor.editarea[0][0]+count2,editor.editarea[0][1]+count,0);
-          }
+        {
+          editor.copysize[0] = editor.editarea[1][0] - editor.editarea[0][0];
+          editor.copysize[1] = editor.editarea[1][1] - editor.editarea[0][1];
+          for (count = 0; count <= editor.copysize[1]; count++)
+            for (count2 = 0; count2 <= editor.copysize[0]; count2++)
+              setblock(editor.editarea[0][0] + count2, editor.editarea[0][1] + count, 0);
+        }
         if (keyboard[SCAN_B] && !prevkeyboard[SCAN_B])
-          {
-          editor.copysize[0]=editor.editarea[1][0]-editor.editarea[0][0];
-          editor.copysize[1]=editor.editarea[1][1]-editor.editarea[0][1];
-          for (count=0;count<=editor.copysize[1];count++)
-          for (count2=0;count2<=editor.copysize[0];count2++)
-            setblock(editor.editarea[0][0]+count2,editor.editarea[0][1]+count,editor.blocknum);
-          }
+        {
+          editor.copysize[0] = editor.editarea[1][0] - editor.editarea[0][0];
+          editor.copysize[1] = editor.editarea[1][1] - editor.editarea[0][1];
+          for (count = 0; count <= editor.copysize[1]; count++)
+            for (count2 = 0; count2 <= editor.copysize[0]; count2++)
+              setblock(editor.editarea[0][0] + count2, editor.editarea[0][1] + count, editor.blocknum);
+        }
         if (keyboard[SCAN_V] && !prevkeyboard[SCAN_V])
-          editor.paste=1;
-        }
+          editor.paste = 1;
+      }
       else
-        {
+      {
         if (mouse.lmb && !prevmouse.lmb)
-          {
-          for (count=0;count<=editor.copysize[1];count++)
-          for (count2=0;count2<=editor.copysize[0];count2++)
-            setblock(x+count2,y+count,editor.copybuffer[count][count2]);
-          }
-        if (keyboard[SCAN_ESC] || (!mouse.rmb && prevmouse.rmb))
-          editor.paste=0;
-        }
-      if (keyboard[SCAN_G])
-        editor.blocknum=getblock(x,y);
-      if (keyboard[SCAN_Q] && !prevkeyboard[SCAN_Q])
         {
+          for (count = 0; count <= editor.copysize[1]; count++)
+            for (count2 = 0; count2 <= editor.copysize[0]; count2++)
+              setblock(x + count2, y + count, editor.copybuffer[count][count2]);
+        }
+        if (keyboard[SCAN_ESC] || (!mouse.rmb && prevmouse.rmb))
+          editor.paste = 0;
+      }
+      if (keyboard[SCAN_G])
+        editor.blocknum = getblock(x, y);
+      if (keyboard[SCAN_Q] && !prevkeyboard[SCAN_Q])
+      {
         if (!keyboard[SCAN_SHIFT])
           editor.blocknum++;
         else
-          editor.blocknum+=10;
-        if (editor.blocknum>255)
-          editor.blocknum=255;
-        }
+          editor.blocknum += 10;
+        if (editor.blocknum > 255)
+          editor.blocknum = 255;
+      }
       if (keyboard[SCAN_Z] && !prevkeyboard[SCAN_Z])
-        {
+      {
         if (!keyboard[SCAN_SHIFT])
           editor.blocknum--;
         else
-          editor.blocknum-=10;
-        if (editor.blocknum<0)
-          editor.blocknum=0;
-        }
+          editor.blocknum -= 10;
+        if (editor.blocknum < 0)
+          editor.blocknum = 0;
+      }
 
       if (keyboard[SCAN_LFT_BRACKET] && !prevkeyboard[SCAN_LFT_BRACKET])
-      if (level.tileset>0)
-        level.tileset--;
+        if (level.tileset > 0)
+          level.tileset--;
       if (keyboard[SCAN_RGT_BRACKET] && !prevkeyboard[SCAN_RGT_BRACKET])
-      if (level.tileset<7)
-        level.tileset++;
+        if (level.tileset < 7)
+          level.tileset++;
 
       if (keyboard[SCAN_1])
-        editor.mode=0;
+        editor.mode = 0;
       if (keyboard[SCAN_2])
-        editor.mode=1;
+        editor.mode = 1;
       if (keyboard[SCAN_3])
-        editor.mode=2;
+        editor.mode = 2;
       if (keyboard[SCAN_4])
-        editor.mode=3;
-      }
+        editor.mode = 3;
+    }
 
-    simcount=0;
-    while (SDL_GetTicks()-simtimer>20 && simcount<5)
-      {
+    simcount = 0;
+    while (SDL_GetTicks() - simtimer > 20 && simcount < 5)
+    {
       simcount++;
-      count=SDL_GetTicks()-simtimer-20;
-      simtimer=SDL_GetTicks()-count;
+      count    = SDL_GetTicks() - simtimer - 20;
+      simtimer = SDL_GetTicks() - count;
 
       if (!menuinputkeyboard)
-        {
-        if (keyboard[SCAN_W])
-          view.position[1]+=0.2f;
-        if (keyboard[SCAN_S])
-          view.position[1]-=0.2f;
-        if (keyboard[SCAN_A])
-          view.position[0]-=0.2f;
-        if (keyboard[SCAN_D])
-          view.position[0]+=0.2f;
-        }
-      }
-    if (!menuinputkeyboard)
       {
+        if (keyboard[SCAN_W])
+          view.position[1] += 0.2f;
+        if (keyboard[SCAN_S])
+          view.position[1] -= 0.2f;
+        if (keyboard[SCAN_A])
+          view.position[0] -= 0.2f;
+        if (keyboard[SCAN_D])
+          view.position[0] += 0.2f;
+      }
+    }
+    if (!menuinputkeyboard)
+    {
       if (keyboard[SCAN_F7] && !prevkeyboard[SCAN_F7])
-        {
+      {
         loadlevel(editor.filename);
         setuplevel();
         setupgame();
-        }
+      }
       if (keyboard[SCAN_F5] && !prevkeyboard[SCAN_F5])
-        {
+      {
         setuplevel();
         setupgame();
-        }
+      }
       if (keyboard[SCAN_F9] && !prevkeyboard[SCAN_F9])
         savelevel(editor.filename);
       if (keyboard[SCAN_F2] && !prevkeyboard[SCAN_F2])
-        {
+      {
         editblock();
-        simtimer=SDL_GetTicks();
-        }
+        simtimer = SDL_GetTicks();
+      }
       if (keyboard[SCAN_F3] && !prevkeyboard[SCAN_F3])
-        {
+      {
         editlevelobjects();
-        simtimer=SDL_GetTicks();
-        }
+        simtimer = SDL_GetTicks();
+      }
       if (keyboard[SCAN_F4] && !prevkeyboard[SCAN_F4])
-        {
+      {
         editlevelrope();
-        simtimer=SDL_GetTicks();
-        }
+        simtimer = SDL_GetTicks();
+      }
       if (keyboard[SCAN_T] && !prevkeyboard[SCAN_T])
-        {
+      {
         edittextures();
-        simtimer=SDL_GetTicks();
-        }
+        simtimer = SDL_GetTicks();
       }
     }
+  }
 
-  editor.active=0;
+  editor.active = 0;
 
-  joystickmenu=1;
+  joystickmenu = 1;
 
   resetmenuitems();
-  }
+}
 
-void setblock(int x,int y,int blocknum)
-  {
-  if (x<0)
+void setblock(int x, int y, int blocknum)
+{
+  if (x < 0)
     return;
-  if (x>=256)
+  if (x >= 256)
     return;
-  if (y<0)
+  if (y < 0)
     return;
-  if (y>=256)
+  if (y >= 256)
     return;
 
-  if (editor.mode==0)
-    level.backgrid[y][x]=blocknum;
-  if (editor.mode==1)
-    level.grid[y][x]=blocknum;
-  if (editor.mode==2)
-    level.foregrid[y][x]=blocknum;
+  if (editor.mode == 0)
+    level.backgrid[y][x] = blocknum;
+  if (editor.mode == 1)
+    level.grid[y][x] = blocknum;
+  if (editor.mode == 2)
+    level.foregrid[y][x] = blocknum;
 
-  setuplevellines(x-1,y-1,x+1,y+1);
-  }
+  setuplevellines(x - 1, y - 1, x + 1, y + 1);
+}
 
-int getblock(int x,int y)
-  {
-  int blocknum=0;
+int getblock(int x, int y)
+{
+  int blocknum = 0;
 
-  if (x<0)
-    return(0);
-  if (x>=256)
-    return(0);
-  if (y<0)
-    return(0);
-  if (y>=256)
-    return(0);
+  if (x < 0)
+    return (0);
+  if (x >= 256)
+    return (0);
+  if (y < 0)
+    return (0);
+  if (y >= 256)
+    return (0);
 
-  if (editor.mode==0)
-    blocknum=level.backgrid[y][x];
-  if (editor.mode==1)
-    blocknum=level.grid[y][x];
-  if (editor.mode==2)
-    blocknum=level.foregrid[y][x];
+  if (editor.mode == 0)
+    blocknum = level.backgrid[y][x];
+  if (editor.mode == 1)
+    blocknum = level.grid[y][x];
+  if (editor.mode == 2)
+    blocknum = level.foregrid[y][x];
 
-  return(blocknum);
-  }
+  return (blocknum);
+}
 
 void rendereditblocks(void)
-  {
-  int count,count2;
-  int x,y;
-  //int blocknum;
-  //float vec[3];
+{
+  int count, count2;
+  int x, y;
+  // int blocknum;
+  // float vec[3];
 
   glDisable(GL_TEXTURE_2D);
 #if defined(GLES)
-    GLfloat vtx[24];
-    glEnableClientState(GL_VERTEX_ARRAY);
+  GLfloat vtx[24];
+  glEnableClientState(GL_VERTEX_ARRAY);
 #else
   glBegin(GL_LINES);
 #endif
 
-  glColor4f(1.0f,1.0f,1.0f,1.0f);
+  glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
   if (!editor.paste)
-    {
-    for (count=editor.editarea[0][1];count<=editor.editarea[1][1];count++)
-    for (count2=editor.editarea[0][0];count2<=editor.editarea[1][0];count2++)
+  {
+    for (count = editor.editarea[0][1]; count <= editor.editarea[1][1]; count++)
+      for (count2 = editor.editarea[0][0]; count2 <= editor.editarea[1][0]; count2++)
       {
 #if defined(GLES)
-    vtx[0] = (float)count2+0.0f; vtx[1] = (float)count+1.0f; vtx[2] = 0.0f;
-    vtx[3] = (float)count2+1.0f; vtx[4] = (float)count+1.0f; vtx[5] = 0.0f;
+        vtx[0] = (float)count2 + 0.0f;
+        vtx[1] = (float)count + 1.0f;
+        vtx[2] = 0.0f;
+        vtx[3] = (float)count2 + 1.0f;
+        vtx[4] = (float)count + 1.0f;
+        vtx[5] = 0.0f;
 
-    vtx[6] = (float)count2+1.0f; vtx[7] = (float)count+1.0f; vtx[8] = 0.0f;
-    vtx[9] = (float)count2+1.0f; vtx[10] = (float)count+0.0f; vtx[11] = 0.0f;
+        vtx[6]  = (float)count2 + 1.0f;
+        vtx[7]  = (float)count + 1.0f;
+        vtx[8]  = 0.0f;
+        vtx[9]  = (float)count2 + 1.0f;
+        vtx[10] = (float)count + 0.0f;
+        vtx[11] = 0.0f;
 
-    vtx[12] = (float)count2+1.0f; vtx[13] = (float)count+0.0f; vtx[14] = 0.0f;
-    vtx[15] = (float)count2+0.0f; vtx[16] = (float)count+0.0f; vtx[17] = 0.0f;
+        vtx[12] = (float)count2 + 1.0f;
+        vtx[13] = (float)count + 0.0f;
+        vtx[14] = 0.0f;
+        vtx[15] = (float)count2 + 0.0f;
+        vtx[16] = (float)count + 0.0f;
+        vtx[17] = 0.0f;
 
-    vtx[18] = (float)count2+0.0f; vtx[19] = (float)count+0.0f; vtx[20] = 0.0f;
-    vtx[21] = (float)count2+0.0f; vtx[22] = (float)count+1.0f; vtx[23] = 0.0f;
+        vtx[18] = (float)count2 + 0.0f;
+        vtx[19] = (float)count + 0.0f;
+        vtx[20] = 0.0f;
+        vtx[21] = (float)count2 + 0.0f;
+        vtx[22] = (float)count + 1.0f;
+        vtx[23] = 0.0f;
 #else
-      glVertex3f((float)count2+0.0f,(float)count+1.0f,0.0f);
-      glVertex3f((float)count2+1.0f,(float)count+1.0f,0.0f);
+        glVertex3f((float)count2 + 0.0f, (float)count + 1.0f, 0.0f);
+        glVertex3f((float)count2 + 1.0f, (float)count + 1.0f, 0.0f);
 
-      glVertex3f((float)count2+1.0f,(float)count+1.0f,0.0f);
-      glVertex3f((float)count2+1.0f,(float)count+0.0f,0.0f);
+        glVertex3f((float)count2 + 1.0f, (float)count + 1.0f, 0.0f);
+        glVertex3f((float)count2 + 1.0f, (float)count + 0.0f, 0.0f);
 
-      glVertex3f((float)count2+1.0f,(float)count+0.0f,0.0f);
-      glVertex3f((float)count2+0.0f,(float)count+0.0f,0.0f);
+        glVertex3f((float)count2 + 1.0f, (float)count + 0.0f, 0.0f);
+        glVertex3f((float)count2 + 0.0f, (float)count + 0.0f, 0.0f);
 
-      glVertex3f((float)count2+0.0f,(float)count+0.0f,0.0f);
-      glVertex3f((float)count2+0.0f,(float)count+1.0f,0.0f);
+        glVertex3f((float)count2 + 0.0f, (float)count + 0.0f, 0.0f);
+        glVertex3f((float)count2 + 0.0f, (float)count + 1.0f, 0.0f);
 #endif
       }
-    }
+  }
   else
-    {
-    x=view.position[0]+(float)(mouse.x-320)/32.0f;
-    y=view.position[1]+(float)(240-mouse.y)/32.0f;
+  {
+    x = view.position[0] + (float)(mouse.x - 320) / 32.0f;
+    y = view.position[1] + (float)(240 - mouse.y) / 32.0f;
 
-    for (count=0;count<=editor.copysize[1];count++)
-    for (count2=0;count2<=editor.copysize[0];count2++)
+    for (count = 0; count <= editor.copysize[1]; count++)
+      for (count2 = 0; count2 <= editor.copysize[0]; count2++)
       {
 #if defined(GLES)
-      vtx[0] = (float)(x+count2)+0.0f; vtx[1] = (float)(y+count)+1.0f; vtx[2] = 0.0f;
-      vtx[3] = (float)(x+count2)+1.0f; vtx[4] = (float)(y+count)+1.0f; vtx[5] = 0.0f;
+        vtx[0] = (float)(x + count2) + 0.0f;
+        vtx[1] = (float)(y + count) + 1.0f;
+        vtx[2] = 0.0f;
+        vtx[3] = (float)(x + count2) + 1.0f;
+        vtx[4] = (float)(y + count) + 1.0f;
+        vtx[5] = 0.0f;
 
-      vtx[6] = (float)(x+count2)+1.0f; vtx[7] = (float)(y+count)+1.0f; vtx[8] = 0.0f;
-      vtx[9] = (float)(x+count2)+1.0f; vtx[10] = (float)(y+count)+0.0f; vtx[11] = 0.0f;
+        vtx[6]  = (float)(x + count2) + 1.0f;
+        vtx[7]  = (float)(y + count) + 1.0f;
+        vtx[8]  = 0.0f;
+        vtx[9]  = (float)(x + count2) + 1.0f;
+        vtx[10] = (float)(y + count) + 0.0f;
+        vtx[11] = 0.0f;
 
-      vtx[12] = (float)(x+count2)+1.0f; vtx[13] = (float)(y+count)+0.0f; vtx[14] = 0.0f;
-      vtx[15] = (float)(x+count2)+0.0f; vtx[16] = (float)(y+count)+0.0f; vtx[17] = 0.0f;
+        vtx[12] = (float)(x + count2) + 1.0f;
+        vtx[13] = (float)(y + count) + 0.0f;
+        vtx[14] = 0.0f;
+        vtx[15] = (float)(x + count2) + 0.0f;
+        vtx[16] = (float)(y + count) + 0.0f;
+        vtx[17] = 0.0f;
 
-      vtx[18] = (float)(x+count2)+0.0f; vtx[19] = (float)(y+count)+0.0f; vtx[20] = 0.0f;
-      vtx[21] = (float)(x+count2)+0.0f; vtx[22] = (float)(y+count)+1.0f; vtx[23] = 0.0f;
+        vtx[18] = (float)(x + count2) + 0.0f;
+        vtx[19] = (float)(y + count) + 0.0f;
+        vtx[20] = 0.0f;
+        vtx[21] = (float)(x + count2) + 0.0f;
+        vtx[22] = (float)(y + count) + 1.0f;
+        vtx[23] = 0.0f;
 #else
-      glVertex3f((float)(x+count2)+0.0f,(float)(y+count)+1.0f,0.0f);
-      glVertex3f((float)(x+count2)+1.0f,(float)(y+count)+1.0f,0.0f);
+        glVertex3f((float)(x + count2) + 0.0f, (float)(y + count) + 1.0f, 0.0f);
+        glVertex3f((float)(x + count2) + 1.0f, (float)(y + count) + 1.0f, 0.0f);
 
-      glVertex3f((float)(x+count2)+1.0f,(float)(y+count)+1.0f,0.0f);
-      glVertex3f((float)(x+count2)+1.0f,(float)(y+count)+0.0f,0.0f);
+        glVertex3f((float)(x + count2) + 1.0f, (float)(y + count) + 1.0f, 0.0f);
+        glVertex3f((float)(x + count2) + 1.0f, (float)(y + count) + 0.0f, 0.0f);
 
-      glVertex3f((float)(x+count2)+1.0f,(float)(y+count)+0.0f,0.0f);
-      glVertex3f((float)(x+count2)+0.0f,(float)(y+count)+0.0f,0.0f);
+        glVertex3f((float)(x + count2) + 1.0f, (float)(y + count) + 0.0f, 0.0f);
+        glVertex3f((float)(x + count2) + 0.0f, (float)(y + count) + 0.0f, 0.0f);
 
-      glVertex3f((float)(x+count2)+0.0f,(float)(y+count)+0.0f,0.0f);
-      glVertex3f((float)(x+count2)+0.0f,(float)(y+count)+1.0f,0.0f);
+        glVertex3f((float)(x + count2) + 0.0f, (float)(y + count) + 0.0f, 0.0f);
+        glVertex3f((float)(x + count2) + 0.0f, (float)(y + count) + 1.0f, 0.0f);
 #endif
       }
-    }
+  }
 
 #if defined(GLES)
 #else
   glEnd();
 #endif
   glEnable(GL_TEXTURE_2D);
-  }
+}
 
 void editblock(void)
-  {
-  int count,count2/*,count3*/;
-  int x,y;
+{
+  int count, count2 /*,count3*/;
+  int x, y;
   int simtimer;
   int simcount;
   float friction;
-  float vec[3]/*,vec2[3]*/;
-  //float normal[3];
-  //char filename[13]="text000.tga";
-  //int changeddir;
+  float vec[3] /*,vec2[3]*/;
+  // float normal[3];
+  // char filename[13]="text000.tga";
+  // int changeddir;
 
-
-  copytexture(999,editor.blocknum);
-  texture[999].magfilter=GL_NEAREST;
-  texture[999].minfilter=GL_NEAREST;
+  copytexture(999, editor.blocknum);
+  texture[999].magfilter = GL_NEAREST;
+  texture[999].minfilter = GL_NEAREST;
   setuptexture(999);
 
-  simtimer=SDL_GetTicks();
+  simtimer = SDL_GetTicks();
 
-  friction=1.0f;
+  friction = 1.0f;
 
   resetmenuitems();
 
   while (!menuitem[0].active && !windowinfo.shutdown)
-    {
-    glClearColor(0.0f,0.0f,0.0f,0.0f);
+  {
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    numofmenuitems=0;
-    createmenuitem(TXT_EXIT,0,0,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_HOTKEY,SCAN_ESC);
-    count=32;
-    createmenuitem(TXT_FRICTION,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&block[editor.blocknum].friction);
-    setmenuitem(MO_HOTKEY,SCAN_F);
-    count+=32;
-    createmenuitem(TXT_BREAKPOINT,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&block[editor.blocknum].breakpoint);
-    setmenuitem(MO_HOTKEY,SCAN_B);
-    count+=32;
-    createmenuitem(TXT_MIDDAMAGE,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&block[editor.blocknum].middamage);
-    setmenuitem(MO_HOTKEY,SCAN_M);
-    count+=32;
-    createmenuitem(TXT_FOREDAMAGE,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&block[editor.blocknum].foredamage);
-    setmenuitem(MO_HOTKEY,SCAN_O);
-    count+=32;
-    createmenuitem(TXT_DENSITY,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&block[editor.blocknum].density);
-    setmenuitem(MO_HOTKEY,SCAN_D);
-    count+=32;
-    createmenuitem(TXT_DRAG"   ",(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_FLOATINPUT,&block[editor.blocknum].drag);
-    setmenuitem(MO_HOTKEY,SCAN_R);
-    count+=32;
-    createmenuitem(TXT_ANIMATION,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&block[editor.blocknum].animation);
-    setmenuitem(MO_HOTKEY,SCAN_N);
-    count+=32;
-    createmenuitem(TXT_ANIMATESPD,(640|TEXT_END),count,16,1.0f,1.0f,1.0f,1.0f);
-    setmenuitem(MO_INTINPUT,&block[editor.blocknum].animationspeed);
-    setmenuitem(MO_HOTKEY,SCAN_S);
-    count+=32;
+    numofmenuitems = 0;
+    createmenuitem(TXT_EXIT, 0, 0, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_HOTKEY, SCAN_ESC);
+    count = 32;
+    createmenuitem(TXT_FRICTION, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &block[editor.blocknum].friction);
+    setmenuitem(MO_HOTKEY, SCAN_F);
+    count += 32;
+    createmenuitem(TXT_BREAKPOINT, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &block[editor.blocknum].breakpoint);
+    setmenuitem(MO_HOTKEY, SCAN_B);
+    count += 32;
+    createmenuitem(TXT_MIDDAMAGE, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &block[editor.blocknum].middamage);
+    setmenuitem(MO_HOTKEY, SCAN_M);
+    count += 32;
+    createmenuitem(TXT_FOREDAMAGE, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &block[editor.blocknum].foredamage);
+    setmenuitem(MO_HOTKEY, SCAN_O);
+    count += 32;
+    createmenuitem(TXT_DENSITY, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &block[editor.blocknum].density);
+    setmenuitem(MO_HOTKEY, SCAN_D);
+    count += 32;
+    createmenuitem(TXT_DRAG "   ", (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_FLOATINPUT, &block[editor.blocknum].drag);
+    setmenuitem(MO_HOTKEY, SCAN_R);
+    count += 32;
+    createmenuitem(TXT_ANIMATION, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &block[editor.blocknum].animation);
+    setmenuitem(MO_HOTKEY, SCAN_N);
+    count += 32;
+    createmenuitem(TXT_ANIMATESPD, (640 | TEXT_END), count, 16, 1.0f, 1.0f, 1.0f, 1.0f);
+    setmenuitem(MO_INTINPUT, &block[editor.blocknum].animationspeed);
+    setmenuitem(MO_HOTKEY, SCAN_S);
+    count += 32;
 
     checksystemmessages();
     checkkeyboard();
@@ -686,51 +716,54 @@ void editblock(void)
     checkmenuitems();
 
     if (!menuinputkeyboard)
-      {
+    {
       if (keyboard[SCAN_DELETE] && !prevkeyboard[SCAN_DELETE])
-      if (block[editor.blocknum].numoflines>0)
-        block[editor.blocknum].numoflines--;
-      }
-    if (mouse.x<464)
-      {
+        if (block[editor.blocknum].numoflines > 0)
+          block[editor.blocknum].numoflines--;
+    }
+    if (mouse.x < 464)
+    {
       if (mouse.lmb && !prevmouse.lmb)
-        {
-        x=(mouse.x+6-32)/12;
-        y=(mouse.y+6-32)/12;
-        if (x<0)
-          x=0;
-        if (y<0)
-          y=0;
-        if (x>32)
-          x=32;
-        if (y>32)
-          y=32;
-        vec[0]=(float)x/32.0f;
-        vec[1]=1.0f-(float)y/32.0f;
+      {
+        x = (mouse.x + 6 - 32) / 12;
+        y = (mouse.y + 6 - 32) / 12;
+        if (x < 0)
+          x = 0;
+        if (y < 0)
+          y = 0;
+        if (x > 32)
+          x = 32;
+        if (y > 32)
+          y = 32;
+        vec[0] = (float)x / 32.0f;
+        vec[1] = 1.0f - (float)y / 32.0f;
 
-        block[editor.blocknum].line[block[editor.blocknum].numoflines][0]=vec[0];
-        block[editor.blocknum].line[block[editor.blocknum].numoflines][1]=vec[1];
-        }
-      x=abs(mouse.x+6-32)/12;
-      y=abs(mouse.y+6-32)/12;
-      if (x<0)
-        x=0;
-      if (y<0)
-        y=0;
-      if (x>32)
-        x=32;
-      if (y>32)
-        y=32;
-      vec[0]=(float)x/32.0f;
-      vec[1]=1.0f-(float)y/32.0f;
-
-      block[editor.blocknum].line[block[editor.blocknum].numoflines][2]=vec[0];
-      block[editor.blocknum].line[block[editor.blocknum].numoflines][3]=vec[1];
-      block[editor.blocknum].line[block[editor.blocknum].numoflines][4]=friction;
-      if (!mouse.lmb && prevmouse.lmb)
-      if (block[editor.blocknum].line[block[editor.blocknum].numoflines][0]!=block[editor.blocknum].line[block[editor.blocknum].numoflines][2] || block[editor.blocknum].line[block[editor.blocknum].numoflines][1]!=block[editor.blocknum].line[block[editor.blocknum].numoflines][3])
-        block[editor.blocknum].numoflines++;
+        block[editor.blocknum].line[block[editor.blocknum].numoflines][0] = vec[0];
+        block[editor.blocknum].line[block[editor.blocknum].numoflines][1] = vec[1];
       }
+      x = abs(mouse.x + 6 - 32) / 12;
+      y = abs(mouse.y + 6 - 32) / 12;
+      if (x < 0)
+        x = 0;
+      if (y < 0)
+        y = 0;
+      if (x > 32)
+        x = 32;
+      if (y > 32)
+        y = 32;
+      vec[0] = (float)x / 32.0f;
+      vec[1] = 1.0f - (float)y / 32.0f;
+
+      block[editor.blocknum].line[block[editor.blocknum].numoflines][2] = vec[0];
+      block[editor.blocknum].line[block[editor.blocknum].numoflines][3] = vec[1];
+      block[editor.blocknum].line[block[editor.blocknum].numoflines][4] = friction;
+      if (!mouse.lmb && prevmouse.lmb)
+        if (block[editor.blocknum].line[block[editor.blocknum].numoflines][0]
+                != block[editor.blocknum].line[block[editor.blocknum].numoflines][2]
+            || block[editor.blocknum].line[block[editor.blocknum].numoflines][1]
+                   != block[editor.blocknum].line[block[editor.blocknum].numoflines][3])
+          block[editor.blocknum].numoflines++;
+    }
 
     setupblockflags(editor.blocknum);
 
@@ -744,84 +777,91 @@ void editblock(void)
     glBegin(GL_LINES);
 #endif
 
-    glColor4f(0.0f,1.0f,0.0f,1.0f);
+    glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
 
-    for (count=0;count<=4;count++)
-      {
-      vec[0]=16.0f;
-      vec[1]=32.0f+96.0f*(float)count;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+    for (count = 0; count <= 4; count++)
+    {
+      vec[0] = 16.0f;
+      vec[1] = 32.0f + 96.0f * (float)count;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[0] = vec[0]; vtx[1] = vec[1]; vtx[2] = -1.0f;
+      vtx[0] = vec[0];
+      vtx[1] = vec[1];
+      vtx[2] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
 
-      vec[0]=32.0f+400.0f;
-      vec[1]=32.0f+96.0f*(float)count;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+      vec[0] = 32.0f + 400.0f;
+      vec[1] = 32.0f + 96.0f * (float)count;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[3] = vec[0]; vtx[4] = vec[1]; vtx[5] = -1.0f;
+      vtx[3] = vec[0];
+      vtx[4] = vec[1];
+      vtx[5] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
 
-      vec[0]=32.0f+96.0f*(float)count;
-      vec[1]=16.0f;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+      vec[0] = 32.0f + 96.0f * (float)count;
+      vec[1] = 16.0f;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[6] = vec[0]; vtx[7] = vec[1]; vtx[8] = -1.0f;
+      vtx[6] = vec[0];
+      vtx[7] = vec[1];
+      vtx[8] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
 
-      vec[0]=32.0f+96.0f*(float)count;
-      vec[1]=32.0f+400.0f;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+      vec[0] = 32.0f + 96.0f * (float)count;
+      vec[1] = 32.0f + 400.0f;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[9] = vec[0]; vtx[10] = vec[1]; vtx[11] = -1.0f;
+      vtx[9]  = vec[0];
+      vtx[10] = vec[1];
+      vtx[11] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
-      }
+    }
 #if defined(GLES)
 #else
     glEnd();
 #endif
     glEnable(GL_TEXTURE_2D);
 
-
-    glBindTexture(GL_TEXTURE_2D,texture[999].glname);
+    glBindTexture(GL_TEXTURE_2D, texture[999].glname);
 
 #if defined(GLES)
 #else
     glBegin(GL_QUADS);
 
-    glColor4f(1.0f,1.0f,1.0f,1.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
-    vec[0]=32.0f;
-    vec[1]=32.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(0.0f,0.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 32.0f;
+    vec[1] = 32.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=32.0f+384.0f;
-    vec[1]=32.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(1.0f,0.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 32.0f + 384.0f;
+    vec[1] = 32.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=32.0f+384.0f;
-    vec[1]=32.0f+384.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(1.0f,1.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 32.0f + 384.0f;
+    vec[1] = 32.0f + 384.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
-    vec[0]=32.0f;
-    vec[1]=32.0f+384.0f;
-    convertscreenvertex(vec,font.sizex,font.sizey);
-    glTexCoord2f(0.0f,1.0f);
-    glVertex3f(vec[0],vec[1],-1.0f);
+    vec[0] = 32.0f;
+    vec[1] = 32.0f + 384.0f;
+    convertscreenvertex(vec, font.sizex, font.sizey);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(vec[0], vec[1], -1.0f);
 
     glEnd();
 #endif
@@ -829,44 +869,48 @@ void editblock(void)
     glDisable(GL_TEXTURE_2D);
 
 #if defined(GLES)
-    //GLfloat vtx[12];
+    // GLfloat vtx[12];
     glEnableClientState(GL_VERTEX_ARRAY);
 #else
     glBegin(GL_LINES);
 #endif
 
-    if (mouse.x<464)
-    if (mouse.lmb)
-      block[editor.blocknum].numoflines++;
+    if (mouse.x < 464)
+      if (mouse.lmb)
+        block[editor.blocknum].numoflines++;
 
-    for (count=0;count<block[editor.blocknum].numoflines;count++)
-      {
-      glColor4f(1.0f,0.0f,0.0f,1.0f);
+    for (count = 0; count < block[editor.blocknum].numoflines; count++)
+    {
+      glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
 
-      vec[0]=32.0f+block[editor.blocknum].line[count][0]*384.0f;
-      vec[1]=32.0f+384.0f-block[editor.blocknum].line[count][1]*384.0f;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+      vec[0] = 32.0f + block[editor.blocknum].line[count][0] * 384.0f;
+      vec[1] = 32.0f + 384.0f - block[editor.blocknum].line[count][1] * 384.0f;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[0] = vec[0]; vtx[1] = vec[1]; vtx[2] = -1.0f;
+      vtx[0] = vec[0];
+      vtx[1] = vec[1];
+      vtx[2] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
 
-      glColor4f(0.0f,0.0f,1.0f,1.0f);   // GLES might need to add a color array per point
+      glColor4f(0.0f, 0.0f, 1.0f, 1.0f); // GLES might need to add a color array per point
 
-      vec[0]=32.0f+block[editor.blocknum].line[count][2]*384.0f;
-      vec[1]=32.0f+384.0f-block[editor.blocknum].line[count][3]*384.0f;
-      convertscreenvertex(vec,font.sizex,font.sizey);
+      vec[0] = 32.0f + block[editor.blocknum].line[count][2] * 384.0f;
+      vec[1] = 32.0f + 384.0f - block[editor.blocknum].line[count][3] * 384.0f;
+      convertscreenvertex(vec, font.sizex, font.sizey);
 #if defined(GLES)
-    vtx[0] = vec[0]; vtx[1] = vec[1]; vtx[2] = -1.0f;
+      vtx[0] = vec[0];
+      vtx[1] = vec[1];
+      vtx[2] = -1.0f;
 #else
-      glVertex3f(vec[0],vec[1],-1.0f);
+      glVertex3f(vec[0], vec[1], -1.0f);
 #endif
-      }
+    }
 
-    if (mouse.x<464)
-    if (mouse.lmb)
-      block[editor.blocknum].numoflines--;
+    if (mouse.x < 464)
+      if (mouse.lmb)
+        block[editor.blocknum].numoflines--;
 
 #if defined(GLES)
 #else
@@ -874,12 +918,12 @@ void editblock(void)
 #endif
     glEnable(GL_TEXTURE_2D);
 
-    drawtext(TXT_LINES":/i",0,432,12,1.0f,1.0f,1.0f,1.0f,block[editor.blocknum].numoflines);
-    drawtext(TXT_ALPHA":/i",0,448,12,1.0f,1.0f,1.0f,1.0f,texture[editor.blocknum].isalpha);
+    drawtext(TXT_LINES ":/i", 0, 432, 12, 1.0f, 1.0f, 1.0f, 1.0f, block[editor.blocknum].numoflines);
+    drawtext(TXT_ALPHA ":/i", 0, 448, 12, 1.0f, 1.0f, 1.0f, 1.0f, texture[editor.blocknum].isalpha);
 
     drawmenuitems();
 
-    drawmousecursor(768+font.cursornum,mouse.x,mouse.y,16,1.0f,1.0f,1.0f,1.0f);
+    drawmousecursor(768 + font.cursornum, mouse.x, mouse.y, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
 #if defined(PC_GLES)
     eglSwapBuffers(eglDisplay, eglSurface);
@@ -888,27 +932,29 @@ void editblock(void)
 #endif
 
     if (keyboard[SCAN_A] && !prevkeyboard[SCAN_A])
-      {
-      for (count=0;count<texture[editor.blocknum].sizey;count++)
-      for (count2=0;count2<texture[editor.blocknum].sizex;count2++)
-      if (!bigendian)
-        texture[editor.blocknum].rgba[0][count*texture[editor.blocknum].sizex+count2]&=0xFFFFFF;
-      else
-        texture[editor.blocknum].rgba[0][count*texture[editor.blocknum].sizex+count2]&=0xFFFFFF00;
+    {
+      for (count = 0; count < texture[editor.blocknum].sizey; count++)
+        for (count2 = 0; count2 < texture[editor.blocknum].sizex; count2++)
+          if (!bigendian)
+            texture[editor.blocknum].rgba[0][count * texture[editor.blocknum].sizex + count2] &= 0xFFFFFF;
+          else
+            texture[editor.blocknum].rgba[0][count * texture[editor.blocknum].sizex + count2] &= 0xFFFFFF00;
 
       setupblockalpha(editor.blocknum);
 
-      texture[editor.blocknum].isalpha=0;
-      for (count=0;count<texture[editor.blocknum].sizey;count++)
-      for (count2=0;count2<texture[editor.blocknum].sizex;count2++)
+      texture[editor.blocknum].isalpha = 0;
+      for (count = 0; count < texture[editor.blocknum].sizey; count++)
+        for (count2 = 0; count2 < texture[editor.blocknum].sizex; count2++)
         {
-        if (!bigendian)
-        if ((texture[editor.blocknum].rgba[0][count*texture[editor.blocknum].sizex+count2]&0xFF000000)!=0xFF000000)
-          texture[editor.blocknum].isalpha=1;
+          if (!bigendian)
+            if ((texture[editor.blocknum].rgba[0][count * texture[editor.blocknum].sizex + count2] & 0xFF000000)
+                != 0xFF000000)
+              texture[editor.blocknum].isalpha = 1;
 
-        if (bigendian)
-        if ((texture[editor.blocknum].rgba[0][count*texture[editor.blocknum].sizex+count2]&0x000000FF)!=0x000000FF)
-          texture[editor.blocknum].isalpha=1;
+          if (bigendian)
+            if ((texture[editor.blocknum].rgba[0][count * texture[editor.blocknum].sizex + count2] & 0x000000FF)
+                != 0x000000FF)
+              texture[editor.blocknum].isalpha = 1;
         }
 
       /*
@@ -941,55 +987,55 @@ void editblock(void)
 
       setuptexture(editor.blocknum);
 
-      memcpy(texture[999].rgba[0],texture[editor.blocknum].rgba[0],texture[editor.blocknum].sizex*texture[editor.blocknum].sizey*4);
+      memcpy(texture[999].rgba[0], texture[editor.blocknum].rgba[0],
+             texture[editor.blocknum].sizex * texture[editor.blocknum].sizey * 4);
       setuptexture(999);
-      }
+    }
 
     if (keyboard[SCAN_Q] && !prevkeyboard[SCAN_Q])
-      {
+    {
       if (!keyboard[SCAN_SHIFT])
         editor.blocknum++;
       else
-        editor.blocknum+=10;
-      if (editor.blocknum>255)
-        editor.blocknum=255;
+        editor.blocknum += 10;
+      if (editor.blocknum > 255)
+        editor.blocknum = 255;
 
-      copytexture(999,editor.blocknum);
-      texture[999].magfilter=GL_NEAREST;
-      texture[999].minfilter=GL_NEAREST;
+      copytexture(999, editor.blocknum);
+      texture[999].magfilter = GL_NEAREST;
+      texture[999].minfilter = GL_NEAREST;
       setuptexture(999);
-      }
+    }
     if (keyboard[SCAN_Z] && !prevkeyboard[SCAN_Z])
-      {
+    {
       if (!keyboard[SCAN_SHIFT])
         editor.blocknum--;
       else
-        editor.blocknum-=10;
-      if (editor.blocknum<0)
-        editor.blocknum=0;
+        editor.blocknum -= 10;
+      if (editor.blocknum < 0)
+        editor.blocknum = 0;
 
-      copytexture(999,editor.blocknum);
-      texture[999].magfilter=GL_NEAREST;
-      texture[999].minfilter=GL_NEAREST;
+      copytexture(999, editor.blocknum);
+      texture[999].magfilter = GL_NEAREST;
+      texture[999].minfilter = GL_NEAREST;
       setuptexture(999);
-
-      }
-
-    simcount=0;
-    while (SDL_GetTicks()-simtimer>20 && simcount<5)
-      {
-      simcount++;
-      count=SDL_GetTicks()-simtimer-20;
-      simtimer=SDL_GetTicks()-count;
-      }
     }
 
-  resetmenuitems();
+    simcount = 0;
+    while (SDL_GetTicks() - simtimer > 20 && simcount < 5)
+    {
+      simcount++;
+      count    = SDL_GetTicks() - simtimer - 20;
+      simtimer = SDL_GetTicks() - count;
+    }
   }
 
+  resetmenuitems();
+}
+
 void renderlevellines(void)
-  {
-  int count,count2,count3;
+{
+  int count, count2, count3;
   int blocknum;
   float vec[3];
 
@@ -999,29 +1045,29 @@ void renderlevellines(void)
 #else
   glBegin(GL_LINES);
 
-  glColor4f(0.0f,0.0f,1.0f,1.0f);
+  glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
 
-  for (count=view.position[1]-32;count<view.position[1]+32;count++)
-  if (count>=0 && count<256)
-  for (count2=view.position[0]-32;count2<view.position[0]+32;count2++)
-  if (count2>=0 && count2<256)
-    {
-    blocknum=level.grid[count][count2];
-    for (count3=0;count3<block[blocknum].numoflines;count3++)
-    if (((level.gridflags[count][count2]>>count3)&1)==0)
-      {
-      vec[0]=(float)count2+block[blocknum].line[count3][0];
-      vec[1]=(float)count+block[blocknum].line[count3][1];
-      glVertex3f(vec[0],vec[1],0.0f);
+  for (count = view.position[1] - 32; count < view.position[1] + 32; count++)
+    if (count >= 0 && count < 256)
+      for (count2 = view.position[0] - 32; count2 < view.position[0] + 32; count2++)
+        if (count2 >= 0 && count2 < 256)
+        {
+          blocknum = level.grid[count][count2];
+          for (count3 = 0; count3 < block[blocknum].numoflines; count3++)
+            if (((level.gridflags[count][count2] >> count3) & 1) == 0)
+            {
+              vec[0] = (float)count2 + block[blocknum].line[count3][0];
+              vec[1] = (float)count + block[blocknum].line[count3][1];
+              glVertex3f(vec[0], vec[1], 0.0f);
 
-      vec[0]=(float)count2+block[blocknum].line[count3][2];
-      vec[1]=(float)count+block[blocknum].line[count3][3];
-      glVertex3f(vec[0],vec[1],0.0f);
-      }
-    }
+              vec[0] = (float)count2 + block[blocknum].line[count3][2];
+              vec[1] = (float)count + block[blocknum].line[count3][3];
+              glVertex3f(vec[0], vec[1], 0.0f);
+            }
+        }
 
   glEnd();
 #endif
 
   glEnable(GL_TEXTURE_2D);
-  }
+}

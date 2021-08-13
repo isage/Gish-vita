@@ -23,18 +23,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdio.h>
 
-char* userpath(char *result, char *path);
+char *userpath(char *result, char *path);
 void loadconfig(void);
 void saveconfig(void);
 void notsupportedmenu(void);
 void pleasedisabletouchcontrols(void);
-void optionreadint(int *ptr,char *str);
-void optionwriteint(FILE *fp, int *ptr,char *str);
-char* stringconcat(const char *s1, const char *s2);
+void optionreadint(int *ptr, char *str);
+void optionwriteint(FILE *fp, int *ptr, char *str);
+char *stringconcat(const char *s1, const char *s2);
 /*void optionreadstring(char *ptr,char *str,int size);
 void optionwritestring(FILE *fp, char *ptr,char *str,int size);*/
 
-typedef struct {
+typedef struct
+{
   int resolutionx;
   int resolutiony;
   int bitsperpixel;
@@ -44,7 +45,7 @@ typedef struct {
   int sound;
   int music;
   int joystick;
-  } _config;
+} _config;
 
 extern _config config;
 

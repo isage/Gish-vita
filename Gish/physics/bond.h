@@ -24,11 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void bondsimulation(void);
 void bonddragsimulation(void);
 void checkbonds(void);
-void createbond(int part1,int part2,int type,int objectnum);
+void createbond(int part1, int part2, int type, int objectnum);
 void deletebond(int bondnum);
 
 typedef struct
-  {
+{
   int part1;
   int part2;
   int type;
@@ -48,17 +48,17 @@ typedef struct
   float bondnormal[3];
   float veclength;
   float oomass;
-  } _bond;
+} _bond;
 
 typedef struct
-  {
+{
   float elasticity;
   float compression;
   float tension;
   int cycles;
   int rendertype;
   float rendersize;
-  } _bondtype;
+} _bondtype;
 
 extern int numofbonds;
 extern _bond bond[16384];

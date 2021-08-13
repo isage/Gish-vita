@@ -26,13 +26,14 @@ void particlecollision(int particlenum);
 void objectcollision(int objectnum);
 void objectcollisionobject(int objectnum);
 void bondsimulation2(void);
-int lineintersectline2(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,float *vertex1,float *vertex2);
+int lineintersectline2(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                       float *vertex1, float *vertex2);
 
 typedef struct
-  {
+{
   int numofbonds;
   struct
-    {
+  {
     int part1;
     int part2;
     int part3;
@@ -51,18 +52,18 @@ typedef struct
     int blockx;
     int blocky;
     float forceapplied[2][3];
-    } bond[8192];
-  } _physicstemp;
+  } bond[8192];
+} _physicstemp;
 
 typedef struct
-  {
+{
   float line[2][3];
   float normal[3];
   float friction;
   int blocknum;
   int blockx;
   int blocky;
-  } _levelline;
+} _levelline;
 
 extern _physicstemp physicstemp;
 

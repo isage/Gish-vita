@@ -23,7 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void checkmouse(void);
 
-typedef struct {
+typedef struct
+{
   int x;
   int y;
   int xdif;
@@ -32,7 +33,7 @@ typedef struct {
   int rmb;
   int lmbr;
   int rmbr;
-  } _mouse;
+} _mouse;
 
 extern _mouse mouse, prevmouse;
 

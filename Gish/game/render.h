@@ -26,23 +26,23 @@ void renderlevel(void);
 void renderlevelfore(void);
 void renderbonds(void);
 void renderobjectinvisible(int objectnum);
-void setuplighttexcoord(int lightcount,float position[3]);
-float calclight(int lightcount,float position[3],float normal[3]);
+void setuplighttexcoord(int lightcount, float position[3]);
+float calclight(int lightcount, float position[3], float normal[3]);
 void renderparticles(void);
 void renderparticles2(void);
 void renderobjects(void);
 void rendersprites(void);
 
 typedef struct
-  {
+{
   int numoflights;
   struct
-    {
+  {
     float position[3];
     float color[3];
     float intensity;
-    } light[16];
-  } _frame;
+  } light[16];
+} _frame;
 
 extern _frame frame;
 

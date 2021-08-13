@@ -22,18 +22,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../config.h"
 
 #ifdef WINDOWS
-  #include <SDL.h>
-  #include <windows.h>
+#include <SDL.h>
+#include <windows.h>
 #endif
 #if defined(LINUX) || defined(__vita__)
-  #ifndef ANDROID_NDK
-  #include <SDL2/SDL.h>
-  #else
-  #include <SDL.h>
-  #include "../android/a_utils.h"
-  #endif
-  #include <stdlib.h>
-  #include <string.h>
+#ifndef ANDROID_NDK
+#include <SDL2/SDL.h>
+#else
+#include "../android/a_utils.h"
+
+#include <SDL.h>
+#endif
+#include <stdlib.h>
+#include <string.h>
 #endif
 
 #include "../game/socket.h"
@@ -41,26 +42,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 char sockdata[1024];
 
-unsigned int rotint(unsigned int x,int rotnum)
-  {
+unsigned int rotint(unsigned int x, int rotnum)
+{
   int count;
   unsigned int y;
 
-  y=0;
-  for (count=0;count<32;count++)
-    {
-    y<<=1;
-    y|=((x>>((count+rotnum)&31))&1);
-    }
-
-  return(y);
+  y = 0;
+  for (count = 0; count < 32; count++)
+  {
+    y <<= 1;
+    y |= ((x >> ((count + rotnum) & 31)) & 1);
   }
 
+  return (y);
+}
+
 void launchwebpage(char *webpagename)
-  {
+{
 #ifdef WINDOWS
   SDL_MinimizeWindow(globalwindow);
-  ShellExecute(NULL,"open",webpagename,"","c:\\",SW_SHOWNORMAL);
+  ShellExecute(NULL, "open", webpagename, "", "c:\\", SW_SHOWNORMAL);
 #endif
 #ifdef MAC
   /*
@@ -91,7 +92,7 @@ void launchwebpage(char *webpagename)
   char command[100] = "http://";
   strcat(command, webpagename);
   SDL_MinimizeWindow(globalwindow);
-  openUrlFromJNI((const char*)command);
+  openUrlFromJNI((const char *)command);
 #endif // !ANDROID_NDK
 #endif
-  }
+}

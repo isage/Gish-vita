@@ -22,24 +22,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../config.h"
 
 #if defined(LINUX) || defined(MAC)
-  #include <unistd.h>
+#include <unistd.h>
 #endif
+
+#include "../audio/audio.h"
+#include "../game/config.h"
+#include "../game/game.h"
+#include "../game/music.h"
+#include "../game/options.h"
+#include "../sdl/file.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "../game/music.h"
-#include "../game/config.h"
-#include "../game/game.h"
-#include "../game/options.h"
-#include "../audio/audio.h"
-#include "../sdl/file.h"
 
 _oggmemoryfile oggmemoryfile[16];
 ov_callbacks vorbiscallbacks;
 
 void checkmusic(void)
-  {
+{
   unsigned int count;
   int count2;
   int queued;
@@ -53,60 +53,60 @@ void checkmusic(void)
     return;
 
   if (!option.music)
-    game.songnum=-1;
+    game.songnum = -1;
 
-  if (game.songnum>8)
-    game.songnum=0;
+  if (game.songnum > 8)
+    game.songnum = 0;
 
-  if (game.songnum!=game.currentsongnum)
+  if (game.songnum != game.currentsongnum)
+  {
+    if (game.currentsongnum != -1)
     {
-    if (game.currentsongnum!=-1)
-      {
       alSourceStop(oggsource);
 
-      alGetSourcei(oggsource,AL_BUFFERS_QUEUED,&queued);
+      alGetSourcei(oggsource, AL_BUFFERS_QUEUED, &queued);
 
-      while (queued>0)
-        {
-        alSourceUnqueueBuffers(oggsource,1,&count);
+      while (queued > 0)
+      {
+        alSourceUnqueueBuffers(oggsource, 1, &count);
 
         queued--;
-        }
-
-      ov_clear(&oggstream[0]);
       }
 
-    if (game.songnum!=-1)
+      ov_clear(&oggstream[0]);
+    }
+
+    if (game.songnum != -1)
+    {
+      vorbiscallbacks.read_func  = vorbisread;
+      vorbiscallbacks.seek_func  = vorbisseek;
+      vorbiscallbacks.close_func = vorbisclose;
+      vorbiscallbacks.tell_func  = vorbistell;
+
+      oggmemoryfile[game.songnum].dataread = 0;
+      if (ov_open_callbacks(&oggmemoryfile[game.songnum], &oggstream[0], NULL, 0, vorbiscallbacks) >= 0)
       {
-      vorbiscallbacks.read_func=vorbisread;
-      vorbiscallbacks.seek_func=vorbisseek;
-      vorbiscallbacks.close_func=vorbisclose;
-      vorbiscallbacks.tell_func=vorbistell;
+        vorbisinfo = ov_info(&oggstream[0], -1);
 
-      oggmemoryfile[game.songnum].dataread=0;
-      if (ov_open_callbacks(&oggmemoryfile[game.songnum],&oggstream[0],NULL,0,vorbiscallbacks)>=0)
-        {
-        vorbisinfo=ov_info(&oggstream[0],-1);
-
-        if (vorbisinfo->channels==1)
-          oggformat=AL_FORMAT_MONO16;
+        if (vorbisinfo->channels == 1)
+          oggformat = AL_FORMAT_MONO16;
         else
-          oggformat=AL_FORMAT_STEREO16;
+          oggformat = AL_FORMAT_STEREO16;
 
         streamogg(oggbuffer[0]);
         streamogg(oggbuffer[1]);
 
-        alSourceQueueBuffers(oggsource,2,oggbuffer);
+        alSourceQueueBuffers(oggsource, 2, oggbuffer);
 
-        vec[0]=0.0f;
-        vec[1]=0.0f;
-        vec[2]=0.0f;
+        vec[0] = 0.0f;
+        vec[1] = 0.0f;
+        vec[2] = 0.0f;
 
-        alSource3f(oggsource,AL_POSITION,vec[0],vec[1],vec[2]);
-        alSource3f(oggsource,AL_VELOCITY,0.0f,0.0f,0.0f);
-        alSourcef(oggsource,AL_REFERENCE_DISTANCE,10.0f);
-        alSourcef(oggsource,AL_GAIN,0.3f*option.musicvolume);
-        alSourcei(oggsource,AL_SOURCE_RELATIVE,AL_TRUE);
+        alSource3f(oggsource, AL_POSITION, vec[0], vec[1], vec[2]);
+        alSource3f(oggsource, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+        alSourcef(oggsource, AL_REFERENCE_DISTANCE, 10.0f);
+        alSourcef(oggsource, AL_GAIN, 0.3f * option.musicvolume);
+        alSourcei(oggsource, AL_SOURCE_RELATIVE, AL_TRUE);
 
         alSourcePlay(oggsource);
 
@@ -114,28 +114,28 @@ void checkmusic(void)
 
         alSourcePlay(oggsource);
 
-        game.currentsongnum=game.songnum;
-        }
+        game.currentsongnum = game.songnum;
+      }
       else
-        game.currentsongnum=-1;
-      }
-    else
-      {
-      game.currentsongnum=game.songnum;
-      }
+        game.currentsongnum = -1;
     }
-
-  if (game.currentsongnum!=-1)
+    else
     {
-    alGetSourcei(oggsource,AL_SOURCE_STATE,&count2);
-    if (count2!=AL_PLAYING)
-      alSourcePlay(oggsource);
+      game.currentsongnum = game.songnum;
     }
   }
 
-void loadoggs(void)
+  if (game.currentsongnum != -1)
   {
-  //int count;
+    alGetSourcei(oggsource, AL_SOURCE_STATE, &count2);
+    if (count2 != AL_PLAYING)
+      alSourcePlay(oggsource);
+  }
+}
+
+void loadoggs(void)
+{
+  // int count;
   int oggnum;
   int changeddir;
   FILE *fp;
@@ -145,238 +145,237 @@ void loadoggs(void)
   strcat(filepath, "music/");
   strcat(filepath, "sewer.ogg");
 
-  oggnum=0;
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  oggnum = 0;
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
+  }
 
-  oggnum=1;
+  oggnum = 1;
 
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "cave.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
-  oggnum=2;
+  }
+  oggnum = 2;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "hell.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
-  oggnum=3;
+  }
+  oggnum = 3;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "egypt.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
-  oggnum=4;
+  }
+  oggnum = 4;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "church.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
-  oggnum=5;
+  }
+  oggnum = 5;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "boss.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
+  }
 
-  oggnum=6;
+  oggnum = 6;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "data/");
   strcat(filepath, "async.dat");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
+  }
 
-  oggnum=7;
+  oggnum = 7;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "versus.ogg");
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
+  }
 
-  oggnum=8;
+  oggnum = 8;
   strcpy(filepath, gishDataPath);
   strcat(filepath, "music/");
   strcat(filepath, "intro.ogg");
 
-  if ((fp=fopen(filepath,"rb"))!=NULL)
-    {
-    fseek(fp,0,SEEK_END);
-    oggmemoryfile[oggnum].datasize=ftell(fp);
-    oggmemoryfile[oggnum].dataread=0;
-    oggmemoryfile[oggnum].data=(char *) malloc(oggmemoryfile[oggnum].datasize);
+  if ((fp = fopen(filepath, "rb")) != NULL)
+  {
+    fseek(fp, 0, SEEK_END);
+    oggmemoryfile[oggnum].datasize = ftell(fp);
+    oggmemoryfile[oggnum].dataread = 0;
+    oggmemoryfile[oggnum].data     = (char *)malloc(oggmemoryfile[oggnum].datasize);
 
-    fseek(fp,0,SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
 
-    fread2(oggmemoryfile[oggnum].data,1,oggmemoryfile[oggnum].datasize,fp);
+    fread2(oggmemoryfile[oggnum].data, 1, oggmemoryfile[oggnum].datasize, fp);
 
     fclose(fp);
-    }
-
   }
+}
 
-size_t vorbisread(void *ptr,size_t bytesize,size_t sizetoread,void *datasource)
-  {
+size_t vorbisread(void *ptr, size_t bytesize, size_t sizetoread, void *datasource)
+{
   int actualsizetoread;
   size_t spacetoeof;
   _oggmemoryfile *vorbisdata;
 
-  vorbisdata=(_oggmemoryfile *)datasource;
+  vorbisdata = (_oggmemoryfile *)datasource;
 
-  spacetoeof=vorbisdata->datasize-vorbisdata->dataread;
+  spacetoeof = vorbisdata->datasize - vorbisdata->dataread;
 
-  if (sizetoread*bytesize<spacetoeof)
-    actualsizetoread=sizetoread*bytesize;
+  if (sizetoread * bytesize < spacetoeof)
+    actualsizetoread = sizetoread * bytesize;
   else
-    actualsizetoread=spacetoeof;
+    actualsizetoread = spacetoeof;
 
-  if (actualsizetoread>0)
-    {
-    memcpy(ptr,(char *)vorbisdata->data+vorbisdata->dataread,actualsizetoread);
-    vorbisdata->dataread+=actualsizetoread;
-    }
-
-  return(actualsizetoread);
+  if (actualsizetoread > 0)
+  {
+    memcpy(ptr, (char *)vorbisdata->data + vorbisdata->dataread, actualsizetoread);
+    vorbisdata->dataread += actualsizetoread;
   }
 
-int vorbisseek(void *datasource,ogg_int64_t offset,int whence)
-  {
+  return (actualsizetoread);
+}
+
+int vorbisseek(void *datasource, ogg_int64_t offset, int whence)
+{
   int spacetoeof;
   ogg_int64_t actualoffset;
   _oggmemoryfile *vorbisdata;
 
-  vorbisdata=(_oggmemoryfile *)datasource;
+  vorbisdata = (_oggmemoryfile *)datasource;
 
-  if (whence==SEEK_SET)
-    {
-    if (offset<vorbisdata->datasize)
-      actualoffset=offset;
+  if (whence == SEEK_SET)
+  {
+    if (offset < vorbisdata->datasize)
+      actualoffset = offset;
     else
-      actualoffset=vorbisdata->datasize;
-    vorbisdata->dataread=(int)actualoffset;
-    }
-  if (whence==SEEK_CUR)
-    {
-    spacetoeof=vorbisdata->datasize-vorbisdata->dataread;
-
-    if (offset<spacetoeof)
-      actualoffset=offset;
-    else
-      actualoffset=spacetoeof;
-    vorbisdata->dataread+=(int)actualoffset;
-    }
-  if (whence==SEEK_END)
-    {
-    vorbisdata->dataread=vorbisdata->datasize+1;
-    }
-  return(0);
+      actualoffset = vorbisdata->datasize;
+    vorbisdata->dataread = (int)actualoffset;
   }
+  if (whence == SEEK_CUR)
+  {
+    spacetoeof = vorbisdata->datasize - vorbisdata->dataread;
+
+    if (offset < spacetoeof)
+      actualoffset = offset;
+    else
+      actualoffset = spacetoeof;
+    vorbisdata->dataread += (int)actualoffset;
+  }
+  if (whence == SEEK_END)
+  {
+    vorbisdata->dataread = vorbisdata->datasize + 1;
+  }
+  return (0);
+}
 
 int vorbisclose(void *datasource)
-  {
-  return(1);
-  }
+{
+  return (1);
+}
 
 long vorbistell(void *datasource)
-  {
+{
   _oggmemoryfile *vorbisdata;
 
-  vorbisdata=(_oggmemoryfile *)datasource;
+  vorbisdata = (_oggmemoryfile *)datasource;
 
-  return(vorbisdata->dataread);
-  }
+  return (vorbisdata->dataread);
+}

@@ -23,14 +23,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdio.h>
 
-int comparestrings(const void *arg1,const void *arg2);
-int checkfilespec(char *filespec,char *filename);
-void listfiles(char *dir, char *filespec,char filelist[1024][32],int directories);
+int comparestrings(const void *arg1, const void *arg2);
+int checkfilespec(char *filespec, char *filename);
+void listfiles(char *dir, char *filespec, char filelist[1024][32], int directories);
 #define fread2 fread
 #define fwrite2 fwrite
-//size_t fread2(void *,size_t,size_t,FILE *);
-//size_t fwrite2(const void *,size_t,size_t,FILE *);
-size_t freadswap(void *ptr,size_t psize,size_t pnum,FILE *pfp);
-size_t fwriteswap(const void *ptr,size_t psize,size_t pnum,FILE *pfp);
+// size_t fread2(void *,size_t,size_t,FILE *);
+// size_t fwrite2(const void *,size_t,size_t,FILE *);
+size_t freadswap(void *ptr, size_t psize, size_t pnum, FILE *pfp);
+size_t fwriteswap(const void *ptr, size_t psize, size_t pnum, FILE *pfp);
 
 #endif /* GISH_SDL_FILE_H */

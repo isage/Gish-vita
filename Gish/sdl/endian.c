@@ -19,15 +19,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "../sdl/endian.h"
+
 #include "../config.h"
+#include "../sdl/file.h"
 
 #include <stdio.h>
 
-#include "../sdl/endian.h"
-#include "../sdl/file.h"
-
 int bigendian;
 
-void checkbigendian(void)
-  {
-  }
+void checkbigendian(void) { }

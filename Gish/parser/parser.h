@@ -27,15 +27,15 @@ int findstring(char *str);
 int checkstring(char *str);
 int getint(void);
 float getfloat(void);
-void getstring(char *str,int size);
+void getstring(char *str, int size);
 
 typedef struct
-  {
+{
   int textloc;
   int textsize;
   char text[1048576];
   char numtemp[256];
-  } _parser;
+} _parser;
 
 extern _parser parser;
 

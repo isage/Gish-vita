@@ -22,85 +22,85 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../config.h"
 
 #ifdef WINDOWS
-  #include <io.h>
+#include <io.h>
 #endif
 
 #if defined(LINUX) || defined(__vita__)
-  #include <dirent.h>
-  #include <sys/stat.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #endif
+
+#include "../sdl/file.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-#include "../sdl/file.h"
+int comparestrings(const void *arg1, const void *arg2)
+{
+  return (strcmp(arg1, arg2));
+}
 
-int comparestrings(const void *arg1,const void *arg2)
-  {
-  return(strcmp(arg1,arg2));
-  }
-
-int checkfilespec(char *filespec,char *filename)
-  {
-  int count,count2;
+int checkfilespec(char *filespec, char *filename)
+{
+  int count, count2;
   int namesize;
 
-  namesize=strlen(filename);
+  namesize = strlen(filename);
 
-  count=0;
-  count2=0;
-  while (filespec[count]!=0 && filename[count2]!=0)
-    {
-    if (filespec[count]!=filename[count2] && filespec[count]!='*')
-      return(0);
-
-    if (filespec[count]==filename[count2])
-      count++;
-    else if (filespec[count]=='*' && filespec[count+1]==filename[count2])
-      count+=2;
-    count2++;
-    }
-  return(1);
-  }
-
-void listfiles(char* dir, char *filespec,char filelist[1024][32],int directories)
+  count  = 0;
+  count2 = 0;
+  while (filespec[count] != 0 && filename[count2] != 0)
   {
+    if (filespec[count] != filename[count2] && filespec[count] != '*')
+      return (0);
+
+    if (filespec[count] == filename[count2])
+      count++;
+    else if (filespec[count] == '*' && filespec[count + 1] == filename[count2])
+      count += 2;
+    count2++;
+  }
+  return (1);
+}
+
+void listfiles(char *dir, char *filespec, char filelist[1024][32], int directories)
+{
 #ifdef WINDOWS
-  int count,count2;
+  int count, count2;
   int handle;
   struct _finddata_t fileinfo;
 
-  handle=_findfirst(filespec,&fileinfo);
+  handle = _findfirst(filespec, &fileinfo);
 
-  count=0;
-  count2=handle;
-  while (count2!=-1 && count<1024)
-    {
+  count  = 0;
+  count2 = handle;
+  while (count2 != -1 && count < 1024)
+  {
     if (!directories)
+    {
+      if ((fileinfo.attrib & _A_SUBDIR) == 0)
       {
-      if ((fileinfo.attrib&_A_SUBDIR)==0)
-        {
-        strcpy(filelist[count],fileinfo.name);
+        strcpy(filelist[count], fileinfo.name);
         count++;
-        }
       }
-    else
-      {
-      if ((fileinfo.attrib&_A_SUBDIR)!=0)
-      if (fileinfo.name[0]!='.')
-        {
-        strcpy(filelist[count],fileinfo.name);
-        count++;
-        }
-      }
-    count2=_findnext(handle,&fileinfo);
     }
+    else
+    {
+      if ((fileinfo.attrib & _A_SUBDIR) != 0)
+        if (fileinfo.name[0] != '.')
+        {
+          strcpy(filelist[count], fileinfo.name);
+          count++;
+        }
+    }
+    count2 = _findnext(handle, &fileinfo);
+  }
 
-  filelist[count][0]=0;
+  filelist[count][0] = 0;
 
   _findclose(handle);
 
-  qsort(filelist,count,32,comparestrings);
+  qsort(filelist, count, 32, comparestrings);
 #endif
 
 #ifdef LINUX
@@ -109,45 +109,45 @@ void listfiles(char* dir, char *filespec,char filelist[1024][32],int directories
   DIR *dfd;
   struct stat stbuf;
 
-  dfd=opendir(dir);
+  dfd = opendir(dir);
 
-  count=0;
-  if (dfd!=NULL)
+  count = 0;
+  if (dfd != NULL)
+  {
+    while ((dp = readdir(dfd)) != NULL)
     {
-    while ((dp=readdir(dfd))!=NULL)
-      {
-      stat(dp->d_name,&stbuf);
+      stat(dp->d_name, &stbuf);
       if (!directories)
-        {
-        if ((stbuf.st_mode&S_IFMT)!=S_IFDIR)
-        if (dp->d_name[0]!='<')
-        if (checkfilespec(filespec,dp->d_name))
-          {
-          strcpy(filelist[count],dp->d_name);
-          count++;
-          }
-        }
+      {
+        if ((stbuf.st_mode & S_IFMT) != S_IFDIR)
+          if (dp->d_name[0] != '<')
+            if (checkfilespec(filespec, dp->d_name))
+            {
+              strcpy(filelist[count], dp->d_name);
+              count++;
+            }
+      }
       else
-        {
-        if ((stbuf.st_mode&S_IFMT)==S_IFDIR)
-        if (dp->d_name[0]!='.')
-        if (dp->d_name[0]!='<')
-        if (checkfilespec(filespec,dp->d_name))
-          { 
-          strcpy(filelist[count],dp->d_name);
-          count++;
-          }
-        }
+      {
+        if ((stbuf.st_mode & S_IFMT) == S_IFDIR)
+          if (dp->d_name[0] != '.')
+            if (dp->d_name[0] != '<')
+              if (checkfilespec(filespec, dp->d_name))
+              {
+                strcpy(filelist[count], dp->d_name);
+                count++;
+              }
       }
     }
+  }
 
-  filelist[count][0]=0;
+  filelist[count][0] = 0;
 
   closedir(dfd);
 
-  qsort(filelist,count,32,comparestrings);
+  qsort(filelist, count, 32, comparestrings);
 #endif
-  }
+}
 /*
 size_t fread2(void *ptr,size_t psize,size_t pnum,FILE *pfp)
   {
@@ -222,68 +222,68 @@ size_t fwrite2(const void *ptr,size_t psize,size_t pnum,FILE *pfp)
   }
 */
 
-size_t freadswap(void *ptr,size_t psize,size_t pnum,FILE *pfp)
-  {
+size_t freadswap(void *ptr, size_t psize, size_t pnum, FILE *pfp)
+{
   size_t count;
   unsigned char *cptr;
 
-  cptr=(unsigned char *) ptr;
-  if (psize==1)
+  cptr = (unsigned char *)ptr;
+  if (psize == 1)
+  {
+    for (count = 0; count < pnum; count++)
+      cptr[count] = fgetc(pfp);
+  }
+  else if (psize == 2)
+  {
+    for (count = 0; count < pnum; count++)
     {
-    for (count=0;count<pnum;count++)
-      cptr[count]=fgetc(pfp);
+      cptr[(count << 1) + 1] = fgetc(pfp);
+      cptr[(count << 1)]     = fgetc(pfp);
     }
-  else if (psize==2)
+  }
+  else if (psize == 4)
+  {
+    for (count = 0; count < pnum; count++)
     {
-    for (count=0;count<pnum;count++)
-      {
-      cptr[(count<<1)+1]=fgetc(pfp);
-      cptr[(count<<1)]=fgetc(pfp);
-      }
+      cptr[(count << 2) + 3] = fgetc(pfp);
+      cptr[(count << 2) + 2] = fgetc(pfp);
+      cptr[(count << 2) + 1] = fgetc(pfp);
+      cptr[(count << 2)]     = fgetc(pfp);
     }
-  else if (psize==4)
-    {
-    for (count=0;count<pnum;count++)
-      {
-      cptr[(count<<2)+3]=fgetc(pfp);
-      cptr[(count<<2)+2]=fgetc(pfp);
-      cptr[(count<<2)+1]=fgetc(pfp);
-      cptr[(count<<2)]=fgetc(pfp);
-      }
-    }
-
-  return(pnum);
   }
 
-size_t fwriteswap(const void *ptr,size_t psize,size_t pnum,FILE *pfp)
-  {
+  return (pnum);
+}
+
+size_t fwriteswap(const void *ptr, size_t psize, size_t pnum, FILE *pfp)
+{
   size_t count;
   unsigned char *cptr;
 
-  cptr=(unsigned char *) ptr;
-  if (psize==1)
-    {
-    for (count=0;count<pnum;count++)
-      fputc(cptr[count],pfp);
-    }
-  else if (psize==2)
-    {
-    for (count=0;count<pnum;count++)
-      {
-      fputc(cptr[(count<<1)+1],pfp);
-      fputc(cptr[(count<<1)],pfp);
-      }
-    }
-  else if (psize==4)
-    {
-    for (count=0;count<pnum;count++)
-      {
-      fputc(cptr[(count<<2)+3],pfp);
-      fputc(cptr[(count<<2)+2],pfp);
-      fputc(cptr[(count<<2)+1],pfp);
-      fputc(cptr[(count<<2)],pfp);
-      }
-    }
-
-  return(pnum);
+  cptr = (unsigned char *)ptr;
+  if (psize == 1)
+  {
+    for (count = 0; count < pnum; count++)
+      fputc(cptr[count], pfp);
   }
+  else if (psize == 2)
+  {
+    for (count = 0; count < pnum; count++)
+    {
+      fputc(cptr[(count << 1) + 1], pfp);
+      fputc(cptr[(count << 1)], pfp);
+    }
+  }
+  else if (psize == 4)
+  {
+    for (count = 0; count < pnum; count++)
+    {
+      fputc(cptr[(count << 2) + 3], pfp);
+      fputc(cptr[(count << 2) + 2], pfp);
+      fputc(cptr[(count << 2) + 1], pfp);
+      fputc(cptr[(count << 2)], pfp);
+    }
+  }
+
+  return (pnum);
+}

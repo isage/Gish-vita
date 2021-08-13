@@ -21,13 +21,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-void createsprite(int points,float position[3]);
+void createsprite(int points, float position[3]);
 void spritetimetolive(void);
 void deletesprite(int spritenum);
 void spritesimulation(void);
 
 typedef struct
-  {
+{
   int type;
   int timetolive;
   char text[64];
@@ -37,7 +37,7 @@ typedef struct
   float blue;
   float alpha;
   int size;
-  } _sprite;
+} _sprite;
 
 extern int numofsprites;
 extern _sprite sprite[256];

@@ -23,16 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../video/opengl.h"
 
-int loadtexturetga(int texturenum,char *filename,int mipmap,int wraps,int wrapt,int magfilter,int minfilter);
-int loadtexturetga_app(int texturenum,char *filename,int mipmap,int wraps,int wrapt,int magfilter,int minfilter);
-int loadtexturetga_anim(int texturenum,char *filename,int mipmap,int wraps,int wrapt,int magfilter,int minfilter);
-int loadtexturetga_internal(int texturenum,char *filename,int mipmap,int wraps,int wrapt,int magfilter,int minfilter, char* path);
-void loadtexturetgapartial(int texturenum,char *filename,int startx,int starty,int sizex,int sizey);
+int loadtexturetga(int texturenum, char *filename, int mipmap, int wraps, int wrapt, int magfilter, int minfilter);
+int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, int wrapt, int magfilter, int minfilter);
+int loadtexturetga_anim(int texturenum, char *filename, int mipmap, int wraps, int wrapt, int magfilter, int minfilter);
+int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wraps, int wrapt, int magfilter,
+                            int minfilter, char *path);
+void loadtexturetgapartial(int texturenum, char *filename, int startx, int starty, int sizex, int sizey);
 void generatemipmap(int texturenum);
 void setuptexture(int texturenum);
 
 typedef struct
-  {
+{
   int sizex;
   int sizey;
   int mipmaplevels;
@@ -46,22 +47,22 @@ typedef struct
   int normalmap;
   int glossmap;
   GLuint glname;
-  unsigned int *rgba[16];	// XXX: use uint32_t
+  unsigned int *rgba[16]; // XXX: use uint32_t
   int glnamenormal;
-  unsigned int *normal[16];	// XXX: use uint32_t
+  unsigned int *normal[16]; // XXX: use uint32_t
   int glnamegloss;
   unsigned char *gloss[16];
   char filename[256];
-  } _texture;
+} _texture;
 
 typedef struct
-  {
+{
   unsigned char imagetypecode;
   short int imagewidth;
   short int imageheight;
   unsigned char pixeldepth;
-  unsigned int imagedata[1024*1024];
-  } _tgaheader;
+  unsigned int imagedata[1024 * 1024];
+} _tgaheader;
 
 extern char lasttextureloaded[32];
 extern _texture texture[2048];

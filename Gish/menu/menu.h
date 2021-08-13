@@ -23,38 +23,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdarg.h>
 
-#define MAXMENUITEMS   256
-#define MO_HOTKEY        1
-#define MO_HIGHLIGHT     2
-#define MO_INTINPUT      3
-#define MO_UINTINPUT     4
-#define MO_FLOATINPUT    5
-#define MO_STRINGINPUT   6
-#define MO_FUNCTION      7
-#define MO_TOGGLE        8
-#define MO_SET           9
-#define MO_REPEAT       10
-#define MO_IMAGE        11
-#define MO_RESIZE       12
-#define MO_CURSOR       13
-#define MO_BACKGROUND   14
+#define MAXMENUITEMS 256
+#define MO_HOTKEY 1
+#define MO_HIGHLIGHT 2
+#define MO_INTINPUT 3
+#define MO_UINTINPUT 4
+#define MO_FLOATINPUT 5
+#define MO_STRINGINPUT 6
+#define MO_FUNCTION 7
+#define MO_TOGGLE 8
+#define MO_SET 9
+#define MO_REPEAT 10
+#define MO_IMAGE 11
+#define MO_RESIZE 12
+#define MO_CURSOR 13
+#define MO_BACKGROUND 14
 
 void checkmenuitems(void);
 void drawmenuitems(void);
-void createmenuitem(char *label,int x,int y,int textsize,float r,float g,float b,float a);
-void setmenuitem(int option,...);
+void createmenuitem(char *label, int x, int y, int textsize, float r, float g, float b, float a);
+void setmenuitem(int option, ...);
 void createmenuitemempty(void);
 void resetmenuitems(void);
 void setupmenuitems(void);
 void menutextbox(void);
 void menutoggle(void);
 void menuset(void);
-int getinputletter(int repeat,int inputflags);
+int getinputletter(int repeat, int inputflags);
 void addmenuinputchar(int charinput);
 int deleteselectedtext(void);
 
 typedef struct
-  {
+{
   char label[64];
   int x;
   int y;
@@ -78,7 +78,7 @@ typedef struct
   int background;
   void *inputpointer;
   void (*function)();
-  } _menuitem;
+} _menuitem;
 
 extern int numofmenuitems;
 extern _menuitem menuitem[MAXMENUITEMS];

@@ -26,11 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void listvideomodes(void);
 
 typedef struct
-  {
+{
   int resolutionx;
   int resolutiony;
   int bitsperpixel;
-  } _sdlvideomode;
+} _sdlvideomode;
 
 extern int numofsdlvideomodes;
 extern _sdlvideomode sdlvideomode[4096];
@@ -40,17 +40,16 @@ extern SDL_GLContext *glcontext;
 extern SDL_Surface *windowicon;
 
 #if defined(PC_GLES)
-    #include <GLES/gl.h>
-    #include <GLES/glext.h>
-    #include <GLES/egl.h>
+#include <GLES/egl.h>
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#include <SDL2/SDL_syswm.h>
 
-    #include <SDL2/SDL_syswm.h>
-
-    extern EGLDisplay eglDisplay;
-    extern EGLConfig glConfig;
-    extern EGLContext eglContext;
-    extern EGLSurface eglSurface;
-    extern const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
+extern EGLDisplay eglDisplay;
+extern EGLConfig glConfig;
+extern EGLContext eglContext;
+extern EGLSurface eglSurface;
+extern const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
 #endif
 
 #endif /* GISH_SDL_VIDEO_H */

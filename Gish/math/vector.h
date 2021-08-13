@@ -23,125 +23,124 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../math/math.h"
 
-#include <string.h>
 #include <math.h>
 #include <math_neon.h>
+#include <string.h>
 
-
-static INLINE float dotproduct(float vec[3],float vec2[3])
+static inline float dotproduct(float vec[3], float vec2[3])
 {
-    return dot3_neon(vec, vec2);
-//	return(vec[0]*vec2[0]+vec[1]*vec2[1]+vec[2]*vec2[2]);
+  return dot3_neon(vec, vec2);
+  //	return(vec[0]*vec2[0]+vec[1]*vec2[1]+vec[2]*vec2[2]);
 }
 
-static INLINE void crossproduct(float result[3],float vec[3],float vec2[3])
+static inline void crossproduct(float result[3], float vec[3], float vec2[3])
 {
-//	result[0]=vec2[1]*vec[2]-vec2[2]*vec[1];
-//	result[1]=vec2[2]*vec[0]-vec2[0]*vec[2];
-//	result[2]=vec2[0]*vec[1]-vec2[1]*vec[0];
-    cross3_neon(vec2, vec, result);
+  //	result[0]=vec2[1]*vec[2]-vec2[2]*vec[1];
+  //	result[1]=vec2[2]*vec[0]-vec2[0]*vec[2];
+  //	result[2]=vec2[0]*vec[1]-vec2[1]*vec[0];
+  cross3_neon(vec2, vec, result);
 }
 
-static INLINE float vectorlength(float *vec)
+static inline float vectorlength(float *vec)
 {
-	return(sqrtf_neon(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]));
+  return (sqrtf_neon(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]));
 }
 
-static INLINE void normalizevector(float result[3],float vec[3])
+static inline void normalizevector(float result[3], float vec[3])
 {
-    normalize3_neon(vec, result);
-/*	float vectorlengthvalue;
+  normalize3_neon(vec, result);
+  /*	float vectorlengthvalue;
 
-	vectorlengthvalue=vectorlength(vec);
-	if (vectorlengthvalue!=0.0f)
-	{
-		vectorlengthvalue=1.0f/vectorlengthvalue;
-		result[0]=vec[0]*vectorlengthvalue;
-		result[1]=vec[1]*vectorlengthvalue;
-		result[2]=vec[2]*vectorlengthvalue;
-	}
-	else
-	{
-		result[0]=0.0f;
-		result[1]=0.0f;
-		result[2]=0.0f;
-	}*/
+          vectorlengthvalue=vectorlength(vec);
+          if (vectorlengthvalue!=0.0f)
+          {
+                  vectorlengthvalue=1.0f/vectorlengthvalue;
+                  result[0]=vec[0]*vectorlengthvalue;
+                  result[1]=vec[1]*vectorlengthvalue;
+                  result[2]=vec[2]*vectorlengthvalue;
+          }
+          else
+          {
+                  result[0]=0.0f;
+                  result[1]=0.0f;
+                  result[2]=0.0f;
+          }*/
 }
 
-static INLINE void copyvector(float *result,float *vec)
+static inline void copyvector(float *result, float *vec)
 {
-	memcpy(result,vec,12);
+  memcpy(result, vec, 12);
 }
 
-static INLINE void negvector(float *result,float *vec)
+static inline void negvector(float *result, float *vec)
 {
-	result[0]=-vec[0];
-	result[1]=-vec[1];
-	result[2]=-vec[2];
+  result[0] = -vec[0];
+  result[1] = -vec[1];
+  result[2] = -vec[2];
 }
 
-static INLINE void zerovector(float result[3])
+static inline void zerovector(float result[3])
 {
-	result[0]=0;
-	result[1]=0;
-	result[2]=0;
-//	memset(result,0,12);
+  result[0] = 0;
+  result[1] = 0;
+  result[2] = 0;
+  //	memset(result,0,12);
 }
 
-static INLINE void addvectors(float *result,float *vec,float *vec2)
+static inline void addvectors(float *result, float *vec, float *vec2)
 {
-	result[0]=vec[0]+vec2[0];
-	result[1]=vec[1]+vec2[1];
-	result[2]=vec[2]+vec2[2];
+  result[0] = vec[0] + vec2[0];
+  result[1] = vec[1] + vec2[1];
+  result[2] = vec[2] + vec2[2];
 }
 
-static INLINE void subtractvectors(float *result,float *vec,float *vec2)
+static inline void subtractvectors(float *result, float *vec, float *vec2)
 {
-	result[0]=vec[0]-vec2[0];
-	result[1]=vec[1]-vec2[1];
-	result[2]=vec[2]-vec2[2];
+  result[0] = vec[0] - vec2[0];
+  result[1] = vec[1] - vec2[1];
+  result[2] = vec[2] - vec2[2];
 }
 
-static INLINE void scalevector(float *result,float *vec,float scale)
+static inline void scalevector(float *result, float *vec, float scale)
 {
-	result[0]=vec[0]*scale;
-	result[1]=vec[1]*scale;
-	result[2]=vec[2]*scale;
+  result[0] = vec[0] * scale;
+  result[1] = vec[1] * scale;
+  result[2] = vec[2] * scale;
 }
 
-static INLINE void scaleaddvectors(float *result,float *vec,float *vec2,float scale)
+static inline void scaleaddvectors(float *result, float *vec, float *vec2, float scale)
 {
-	result[0]=vec[0]+vec2[0]*scale;
-	result[1]=vec[1]+vec2[1]*scale;
-	result[2]=vec[2]+vec2[2]*scale;
+  result[0] = vec[0] + vec2[0] * scale;
+  result[1] = vec[1] + vec2[1] * scale;
+  result[2] = vec[2] + vec2[2] * scale;
 }
 
-static INLINE void addvectors2(float *result,float *vec,float *vec2)
+static inline void addvectors2(float *result, float *vec, float *vec2)
 {
-	result[0]=vec[0]+vec2[0];
-	result[1]=vec[1]+vec2[1];
+  result[0] = vec[0] + vec2[0];
+  result[1] = vec[1] + vec2[1];
 }
 
-static INLINE void subtractvectors2(float *result,float *vec,float *vec2)
+static inline void subtractvectors2(float *result, float *vec, float *vec2)
 {
-	result[0]=vec[0]-vec2[0];
-	result[1]=vec[1]-vec2[1];
+  result[0] = vec[0] - vec2[0];
+  result[1] = vec[1] - vec2[1];
 }
 
-static INLINE void scalevector2(float *result,float *vec,float scale)
+static inline void scalevector2(float *result, float *vec, float scale)
 {
-	result[0]=vec[0]*scale;
-	result[1]=vec[1]*scale;
+  result[0] = vec[0] * scale;
+  result[1] = vec[1] * scale;
 }
 
-static INLINE void scaleaddvectors2(float *result,float *vec,float *vec2,float scale)
+static inline void scaleaddvectors2(float *result, float *vec, float *vec2, float scale)
 {
-	result[0]=vec[0]+vec2[0]*scale;
-	result[1]=vec[1]+vec2[1]*scale;
+  result[0] = vec[0] + vec2[0] * scale;
+  result[1] = vec[1] + vec2[1] * scale;
 }
 
 void resetorientation(float orientation[3][3]);
-void rotateorientation(float orientation[3][3],float *rotationvector,float rotationangle);
+void rotateorientation(float orientation[3][3], float *rotationvector, float rotationangle);
 
 extern float xaxis[3], yaxis[3], zaxis[3];
 

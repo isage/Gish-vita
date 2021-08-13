@@ -22,11 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #ifdef MAC
-  #include <OpenAL/al.h>
-  #include <OpenAL/alc.h>
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
 #else
-  #include <AL/al.h>
-  #include <AL/alc.h>
+#include <AL/al.h>
+#include <AL/alc.h>
 #endif
 
 #ifndef ANDROID_NDK
@@ -36,13 +36,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ivorbisfile.h>
 #endif
 
-#define OGGBUFFERSIZE 4096*8
+#define OGGBUFFERSIZE 4096 * 8
 
 void setupaudio(void);
 int updateogg(void);
 int streamogg(int buffernum);
 void shutdownaudio(void);
-void loadwav(int buffernum,char *filename);
+void loadwav(int buffernum, char *filename);
 
 extern ALCcontext *alcontext;
 extern ALCdevice *aldevice;

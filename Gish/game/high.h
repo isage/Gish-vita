@@ -26,10 +26,10 @@ void savescores(void);
 void loadscores(void);
 
 typedef struct
-  {
+{
   char name[32];
   int time;
-  } _highscore;
+} _highscore;
 
 extern _highscore highscore[32][16];
 

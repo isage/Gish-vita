@@ -26,26 +26,27 @@ void renderlevel(void);
 void simulation(void);
 void getinputs(void);
 
-typedef enum {
-	GAMEEXIT_NONE = 0,
-	GAMEEXIT_INGAMEMENU = 1,
-	GAMEEXIT_EXITGAME = 2,
-	GAMEEXIT_DIED = 3,
-	GAMEEXIT_WON = 4,
-	GAMEXIT_WARPZONE = 5
+typedef enum
+{
+  GAMEEXIT_NONE       = 0,
+  GAMEEXIT_INGAMEMENU = 1,
+  GAMEEXIT_EXITGAME   = 2,
+  GAMEEXIT_DIED       = 3,
+  GAMEEXIT_WON        = 4,
+  GAMEXIT_WARPZONE    = 5
 } gameexit;
 
 typedef struct
-  {
+{
   float position[3];
   float orientation[3][3];
   float zoom;
   int zoomx;
   int zoomy;
-  } _view;
+} _view;
 
 typedef struct
-  {
+{
   int pause;
   int framenum;
   int levelnum;
@@ -78,7 +79,7 @@ typedef struct
   int editing;
   int godmode;
   int godparticle;
-  } _game;
+} _game;
 
 extern _view view;
 extern _game game;

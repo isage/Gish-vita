@@ -25,13 +25,13 @@ void objectanimation(void);
 void loadanimations(void);
 
 typedef struct
-  {
+{
   int loaded;
   int stand[2];
   int walk[2];
   int attack[2];
   int die[2];
-  } _animation;
+} _animation;
 
 extern int numofanimations;
 extern _animation animation[128];

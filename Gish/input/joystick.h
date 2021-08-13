@@ -25,7 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void checkjoystick(void);
 
-typedef struct {
+typedef struct
+{
   int x;
   int y;
   float axis[2];
@@ -35,9 +36,10 @@ typedef struct {
   int numofhats;
   int hat[4];
   char name[64];
-  } _joystick;
+} _joystick;
 
-typedef struct {
+typedef struct
+{
   int x;
   int y;
   float axis[2];
@@ -47,7 +49,7 @@ typedef struct {
   int numofhats;
   int hat[4];
   char name[64];
-  } _prevjoystick;
+} _prevjoystick;
 
 extern int numofjoysticks;
 extern SDL_Joystick *joy[16];

@@ -24,10 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void recordframe(void);
 
 typedef struct
-  {
+{
   int record;
   int framenum;
-  } _movie;
+} _movie;
 
 extern _movie movie;
 

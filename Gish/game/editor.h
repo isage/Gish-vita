@@ -22,14 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 void editlevel(void);
-void setblock(int x,int y,int blocknum);
-int getblock(int x,int y);
+void setblock(int x, int y, int blocknum);
+int getblock(int x, int y);
 void rendereditblocks(void);
 void editblock(void);
 void renderlevellines(void);
 
 typedef struct
-  {
+{
   int active;
   int mode;
   int showgrid;
@@ -43,7 +43,7 @@ typedef struct
   int copysize[2];
   int copybuffer[128][128];
   int paste;
-  } _editor;
+} _editor;
 
 extern _editor editor;
 

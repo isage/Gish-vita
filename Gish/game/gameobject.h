@@ -21,27 +21,27 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-void createbox(float position[3],float sizex,float sizey,float mass,float friction);
+void createbox(float position[3], float sizex, float sizey, float mass, float friction);
 void createtarboy(float position[3]);
-void createwheel(float position[3],float sizex,float sizey,float mass,float friction,int anchor);
+void createwheel(float position[3], float sizex, float sizey, float mass, float friction, int anchor);
 void setupobjecttypes(void);
-void createrope(int type,int particlenum,int particlenum2,int objectnum,int objectnum2,int texturenum);
+void createrope(int type, int particlenum, int particlenum2, int objectnum, int objectnum2, int texturenum);
 void createanchor(float position[3]);
-void createbutton(float position[3],float mass);
-void createswitch(float position[3],float mass,int rotate);
-void createbeast(int beasttype,float position[3],float sizex,float sizey,float mass,float friction);
-void createbobble(int beasttype,float position[3],float sizex,float sizey,float mass,float friction);
-void createhead(float position[3],float sizex,float sizey,float mass,float friction);
+void createbutton(float position[3], float mass);
+void createswitch(float position[3], float mass, int rotate);
+void createbeast(int beasttype, float position[3], float sizex, float sizey, float mass, float friction);
+void createbobble(int beasttype, float position[3], float sizex, float sizey, float mass, float friction);
+void createhead(float position[3], float sizex, float sizey, float mass, float friction);
 void createamber(float position[3]);
-void createareaswitch(float position[3],float sizex,float sizey);
-void creategenerator(float position[3],float mass);
+void createareaswitch(float position[3], float sizex, float sizey);
+void creategenerator(float position[3], float mass);
 void deleteobject(int objectnum);
 void deleterope(int ropenum);
 void objecttimetolive(void);
-void createcar(float position[3],float sizex,float sizey,float mass,float friction);
+void createcar(float position[3], float sizex, float sizey, float mass, float friction);
 
 typedef struct
-  {
+{
   int type;
   int texturenum;
   int timetolive;
@@ -87,29 +87,29 @@ typedef struct
   int rotate;
   int ai;
   int beasttype;
-  } _object;
+} _object;
 
 typedef struct
-  {
+{
   int collide[256];
   int numofpoints;
   struct
-    {
+  {
     int type;
     float position[3];
     float mass;
-    } point[64];
+  } point[64];
   int numoflinks;
   struct
-    {
+  {
     int type;
     int part1;
     int part2;
-    } link[256];
-  } _objecttype;
+  } link[256];
+} _objecttype;
 
 typedef struct
-  {
+{
   int type;
   int part1;
   int part2;
@@ -121,7 +121,7 @@ typedef struct
   float cyclelength;
   float cyclecount;
   float range;
-  } _rope;
+} _rope;
 
 extern int numofobjects;
 extern _object object[512];

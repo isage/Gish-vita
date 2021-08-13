@@ -30,35 +30,35 @@ void videooptionsmenu(void);
 void drawsliderbars(void);
 void optionsmenu2(void);
 
-typedef enum {
-	KEYALIAS_LEFT = 0,
-	KEYALIAS_RIGHT = 1,
-	KEYALIAS_DOWN = 2,
-	KEYALIAS_UP = 3,
-	KEYALIAS_STICK = 4,
-	KEYALIAS_JUMP = 5,
-	KEYALIAS_SLIDE = 6,
-	KEYALIAS_HEAVY = 7,
-	KEYALIAS_LAST = KEYALIAS_HEAVY,
-	KEYALIAS_LENGTH = KEYALIAS_LAST+1
+typedef enum
+{
+  KEYALIAS_LEFT   = 0,
+  KEYALIAS_RIGHT  = 1,
+  KEYALIAS_DOWN   = 2,
+  KEYALIAS_UP     = 3,
+  KEYALIAS_STICK  = 4,
+  KEYALIAS_JUMP   = 5,
+  KEYALIAS_SLIDE  = 6,
+  KEYALIAS_HEAVY  = 7,
+  KEYALIAS_LAST   = KEYALIAS_HEAVY,
+  KEYALIAS_LENGTH = KEYALIAS_LAST + 1
 } keyalias;
 
 typedef struct
-  {
+{
   int sound;
   int music;
   float soundvolume;
   float musicvolume;
-  } _option;
-
+} _option;
 
 typedef struct
-  {
+{
   keyboardkey key[KEYALIAS_LENGTH];
   int joysticknum;
   int axis[4];
   int button[16];
-  } _control;
+} _control;
 
 extern _option option;
 extern _control control[CONTROLS_LENGTH];

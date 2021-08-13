@@ -28,9 +28,9 @@ int loadreplay(char *filename);
 void replaymenu(void);
 
 typedef struct
-  {
+{
   unsigned char button;
-  } _replayframe;
+} _replayframe;
 
 extern int numofreplayframes;
 extern _replayframe replayframe[65536];

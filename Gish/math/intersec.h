@@ -21,11 +21,14 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-int lineintersectplane(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,float *point);
-int lineintersecttriangle(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,float *vertex1,float *vertex2,float *vertex3);
-int pointintersectline(float *point,float *vertex1,float *vertex2,float bias);
-int lineintersectline(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,float *vertex1,float *vertex2);
-float intersectdistance(float *point,float *startpoint,float *endpoint,float *normal);
-void generatepolygonnormal(float *normal,float *vertex1,float *vertex2,float *vertex3);
+int lineintersectplane(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                       float *point);
+int lineintersecttriangle(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                          float *vertex1, float *vertex2, float *vertex3);
+int pointintersectline(float *point, float *vertex1, float *vertex2, float bias);
+int lineintersectline(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                      float *vertex1, float *vertex2);
+float intersectdistance(float *point, float *startpoint, float *endpoint, float *normal);
+void generatepolygonnormal(float *normal, float *vertex1, float *vertex2, float *vertex3);
 
 #endif /* GISH_MATH_INTERSEC_H */

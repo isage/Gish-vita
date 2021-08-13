@@ -30,7 +30,7 @@ void collectionmenu(void);
 void singlelevelmenu(void);
 
 typedef struct
-  {
+{
   char name[32];
   int levelnum;
   int numoflives;
@@ -39,7 +39,7 @@ typedef struct
   int gamepassed;
   int highscore;
   int unlock[16];
-  } _player;
+} _player;
 
 extern int playernum;
 extern _player player[16];

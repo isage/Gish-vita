@@ -24,16 +24,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PHYSICSCYCLE 50.0f
 
 void particlecollisionlevel(int particlenum);
-void calculatefriction(float *nforce,float *fforce,float *normal,float cofric);
+void calculatefriction(float *nforce, float *fforce, float *normal, float cofric);
 void particlesimulation(void);
 void particletimetolive(void);
-void createparticle(int type,float *position,float *velocity,float mass,int objectnum,int timetolive);
+void createparticle(int type, float *position, float *velocity, float mass, int objectnum, int timetolive);
 void deleteparticle(int particlenum);
-void applyforceparticle(int particlenum,float force[3]);
-void getforceparticle(int particlenum,float force[3]);
+void applyforceparticle(int particlenum, float force[3]);
+void getforceparticle(int particlenum, float force[3]);
 
 typedef struct
-  {
+{
   float position[3];
   float prevposition[3];
   float velocity[3];
@@ -53,10 +53,10 @@ typedef struct
   int rendertype;
   float rendersize;
   int texturenum;
-  } _particle;
+} _particle;
 
 typedef struct
-  {
+{
   float drag;
   float gravity;
   float elasticity;
@@ -64,7 +64,7 @@ typedef struct
   int levelcollision;
   int objectcollision;
   int rendertype;
-  } _particletype;
+} _particletype;
 
 extern int numofparticles;
 extern _particle particle[16384];

@@ -22,18 +22,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 void edittextures(void);
-void copytexture(int texturenum,int oldtexturenum);
+void copytexture(int texturenum, int oldtexturenum);
 void loadtilesettemp(void);
 void loadleveltiles(char *filename);
 
 typedef struct
-  {
+{
   int pagenum;
   int texturenum;
   int tileset;
   int tilepagenum;
   char filename[32];
-  } _textureedit;
+} _textureedit;
 
 extern _textureedit textureedit;
 

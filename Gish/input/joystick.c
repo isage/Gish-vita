@@ -19,12 +19,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "../input/joystick.h"
+
 #include "../config.h"
+#include "../game/config.h"
 
 #include <string.h>
-
-#include "../input/joystick.h"
-#include "../game/config.h"
 
 int numofjoysticks;
 SDL_Joystick *joy[16];
@@ -36,46 +36,50 @@ _joystick joystick[16];
 _prevjoystick prevjoystick[16];
 
 void checkjoystick(void)
-  {
-  int count,count2;
+{
+  int count, count2;
 
   if (!config.joystick)
     return;
 
-  for (count=0;count<numofjoysticks;count++)
-    memcpy(&prevjoystick[count],&joystick[count],sizeof(joystick[0]));
+  for (count = 0; count < numofjoysticks; count++)
+    memcpy(&prevjoystick[count], &joystick[count], sizeof(joystick[0]));
 
   SDL_JoystickUpdate();
-  for (count=0;count<numofjoysticks;count++)
+  for (count = 0; count < numofjoysticks; count++)
     if (joy[count])
+    {
+      joystick[count].x = SDL_JoystickGetAxis(joy[count], 0);
+      joystick[count].y = SDL_JoystickGetAxis(joy[count], 1);
+      for (count2 = 0; count2 < joystick[count].numofbuttons; count2++)
+        joystick[count].button[count2] = SDL_JoystickGetButton(joy[count], count2);
+
+      joystick[count].axis[0] = 0.0f;
+      joystick[count].axis[1] = 0.0f;
+      if (joystick[count].x < -10000)
+        joystick[count].axis[0] = -1.0f;
+      if (joystick[count].x > 10000)
+        joystick[count].axis[0] = 1.0f;
+      if (joystick[count].y < -10000)
+        joystick[count].axis[1] = 1.0f;
+      if (joystick[count].y > 10000)
+        joystick[count].axis[1] = -1.0f;
+
+      if (joystick[count].numofhats > 0)
       {
-      joystick[count].x=SDL_JoystickGetAxis(joy[count],0);
-      joystick[count].y=SDL_JoystickGetAxis(joy[count],1);
-      for (count2=0;count2<joystick[count].numofbuttons;count2++)
-        joystick[count].button[count2]=SDL_JoystickGetButton(joy[count],count2);
-
-      joystick[count].axis[0]=0.0f;
-      joystick[count].axis[1]=0.0f;
-      if (joystick[count].x<-10000)
-        joystick[count].axis[0]=-1.0f;
-      if (joystick[count].x>10000)
-        joystick[count].axis[0]=1.0f;
-      if (joystick[count].y<-10000)
-        joystick[count].axis[1]=1.0f;
-      if (joystick[count].y>10000)
-        joystick[count].axis[1]=-1.0f;
-
-      if (joystick[count].numofhats>0)
-        {
-        joystick[count].hat[0]=SDL_JoystickGetHat(joy[count],0);
-        if (joystick[count].hat[0]==SDL_HAT_UP || joystick[count].hat[0]==SDL_HAT_RIGHTUP || joystick[count].hat[0]==SDL_HAT_LEFTUP)
-          joystick[count].axis[1]=1.0f;
-        if (joystick[count].hat[0]==SDL_HAT_DOWN || joystick[count].hat[0]==SDL_HAT_RIGHTDOWN || joystick[count].hat[0]==SDL_HAT_LEFTDOWN)
-          joystick[count].axis[1]=-1.0f;
-        if (joystick[count].hat[0]==SDL_HAT_LEFT || joystick[count].hat[0]==SDL_HAT_LEFTUP || joystick[count].hat[0]==SDL_HAT_LEFTDOWN)
-          joystick[count].axis[0]=-1.0f;
-        if (joystick[count].hat[0]==SDL_HAT_RIGHT || joystick[count].hat[0]==SDL_HAT_RIGHTUP || joystick[count].hat[0]==SDL_HAT_RIGHTDOWN)
-          joystick[count].axis[0]=1.0f;
-        }
+        joystick[count].hat[0] = SDL_JoystickGetHat(joy[count], 0);
+        if (joystick[count].hat[0] == SDL_HAT_UP || joystick[count].hat[0] == SDL_HAT_RIGHTUP
+            || joystick[count].hat[0] == SDL_HAT_LEFTUP)
+          joystick[count].axis[1] = 1.0f;
+        if (joystick[count].hat[0] == SDL_HAT_DOWN || joystick[count].hat[0] == SDL_HAT_RIGHTDOWN
+            || joystick[count].hat[0] == SDL_HAT_LEFTDOWN)
+          joystick[count].axis[1] = -1.0f;
+        if (joystick[count].hat[0] == SDL_HAT_LEFT || joystick[count].hat[0] == SDL_HAT_LEFTUP
+            || joystick[count].hat[0] == SDL_HAT_LEFTDOWN)
+          joystick[count].axis[0] = -1.0f;
+        if (joystick[count].hat[0] == SDL_HAT_RIGHT || joystick[count].hat[0] == SDL_HAT_RIGHTUP
+            || joystick[count].hat[0] == SDL_HAT_RIGHTDOWN)
+          joystick[count].axis[0] = 1.0f;
       }
-  }
+    }
+}

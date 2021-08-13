@@ -21,8 +21,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-int lineintersectobject(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,int objectnum,int *particlelist);
-int lineintersectobject2(float *intersectpoint,float *normal,float *scale,float *startpoint,float *endpoint,int objectnum,int *particlelist);
-int pointintersectobject(float *intersectpoint,float *normal,float *scale,float *point,int objectnum,int objectnum2,int *particlelist);
+int lineintersectobject(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                        int objectnum, int *particlelist);
+int lineintersectobject2(float *intersectpoint, float *normal, float *scale, float *startpoint, float *endpoint,
+                         int objectnum, int *particlelist);
+int pointintersectobject(float *intersectpoint, float *normal, float *scale, float *point, int objectnum,
+                         int objectnum2, int *particlelist);
 
 #endif /* GISH_PHYSICS_OBJECT_H */

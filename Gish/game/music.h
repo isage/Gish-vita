@@ -25,23 +25,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ogg/ogg.h>
 #include <vorbis/vorbisfile.h>
 #else
-#include <ogg/ogg.h>
 #include <ivorbisfile.h>
+#include <ogg/ogg.h>
 #endif
 
 void checkmusic(void);
 void loadoggs(void);
-size_t vorbisread(void *ptr,size_t bytesize,size_t sizetoread,void *datasource);
-int vorbisseek(void *datasource,ogg_int64_t offset,int whence);
+size_t vorbisread(void *ptr, size_t bytesize, size_t sizetoread, void *datasource);
+int vorbisseek(void *datasource, ogg_int64_t offset, int whence);
 int vorbisclose(void *datasource);
 long vorbistell(void *datasource);
 
 typedef struct
-  {
+{
   char *data;
   int datasize;
   int dataread;
-  } _oggmemoryfile;
+} _oggmemoryfile;
 
 extern _oggmemoryfile oggmemoryfile[16];
 extern ov_callbacks vorbiscallbacks;
