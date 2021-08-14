@@ -94,7 +94,6 @@ target_link_libraries(${TARGET_NAME}
     vorbis
     ogg
     pthread
-    mathneon
     z
     m
     SceAudio_stub

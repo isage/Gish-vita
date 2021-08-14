@@ -64,7 +64,7 @@ void setuplightingtextures(void)
     {
       vec[0] = ((float)count2 - 63.5f) / 64.0f;
       vec[1] = ((float)count - 63.5f) / 64.0f;
-      vec[2] = sqrtf_neon(1.0f - (vec[0] * vec[0] + vec[1] * vec[1]));
+      vec[2] = sqrt(1.0f - (vec[0] * vec[0] + vec[1] * vec[1]));
 
       if (vec[2] < 0.0f)
         zerovector(vec);
@@ -122,7 +122,7 @@ void setuplightingtextures(void)
     {
       vec[0] = ((float)count2 - 63.5f) / 64.0f;
       vec[1] = ((float)count - 63.5f) / 64.0f;
-      vec[2] = 1.0 - sqrtf_neon(vec[0] * vec[0] + vec[1] * vec[1]);
+      vec[2] = 1.0 - sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
 
       if (vec[2] < 0.0f)
         zerovector(vec);

@@ -940,7 +940,7 @@ void bondsimulation2(void)
       {
         force[0] = dotproduct(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].normal);
         force[1] = vectorlength(physicstemp.bond[count2].forceapplied[0]);
-        scale    = sqrtf_neon(force[1] * force[1] - force[0] * force[0]);
+        scale    = sqrt(force[1] * force[1] - force[0] * force[0]);
 
         object[physicstemp.bond[count2].objectnum[0]].frictionapplied += scale;
       }
