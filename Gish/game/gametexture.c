@@ -485,6 +485,7 @@ void loadtilesettemp(void)
   if (textureedit.tileset == 6)
     strcpy(filepath, "tile07/texture/");
   if (textureedit.tileset == 7)
+    strcpy(filepath, "tile08/texture/");
 
     for (count = 0; count < 256; count++)
     {
