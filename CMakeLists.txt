@@ -21,7 +21,7 @@ include_directories(${PROJECT_NAME}
                     ${SDL2_INCLUDE_DIR}
                     ${OPENAL_INCLUDE_DIR})
 
-add_definitions(-DGLES -DPC_GLES)
+add_definitions(-DGLES)
 
 set(GISH_SOURCES    ${PROJECT_NAME}/audio/audio.c
                     ${PROJECT_NAME}/game/ai.c
@@ -85,7 +85,7 @@ add_executable(${TARGET_NAME} ${GISH_SOURCES})
 
 add_definitions("-Dmemcpy=sceClibMemcpy")
 add_definitions("-Dmemcmp=sceClibMemcmp")
-add_definitions("-marm -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -ftree-vectorize -ffast-math -fsigned-char")
+add_definitions("-marm -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -ftree-vectorize -ffast-math -fsigned-char -fno-optimize-sibling-calls")
 
 target_link_libraries(${TARGET_NAME}
     SDL2::SDL2-static
@@ -98,6 +98,7 @@ target_link_libraries(${TARGET_NAME}
     m
     SceAudio_stub
     SceAudioIn_stub
+    SceIme_stub
     liblibGLESv1_CM_stub_weak.a liblibgpu_es4_ext_stub_weak.a liblibIMGEGL_stub_weak.a
 )
 
@@ -112,9 +113,9 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${TARGET_NAME}.self
     VERSION ${VITA_VERSION}
     NAME ${VITA_APP_NAME}
     FILE sce_sys sce_sys
-    FILE prx/libGLESv1_CM.suprx libGLESv1_CM.suprx
-    FILE prx/libgpu_es4_ext.suprx libgpu_es4_ext.suprx
-    FILE prx/libIMGEGL.suprx libIMGEGL.suprx
-    FILE prx/libpvrPSP2_WSEGL.suprx libpvrPSP2_WSEGL.suprx
+    FILE prx/libGLESv1_CM.suprx module/libGLESv1_CM.suprx
+    FILE prx/libgpu_es4_ext.suprx module/libgpu_es4_ext.suprx
+    FILE prx/libIMGEGL.suprx module/libIMGEGL.suprx
+    FILE prx/libpvrPSP2_WSEGL.suprx module/libpvrPSP2_WSEGL.suprx
     FILE data data
 )

@@ -36,19 +36,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "video/text.h"
 #include "video/texture.h"
 
-#include <psp2/kernel/modulemgr.h>
+//#include <psp2/kernel/modulemgr.h>
 #include <psp2/power.h>
-#include <services.h>
+//#include <services.h>
 
 
 int _newlib_heap_size_user   = 100 * 1024 * 1024;
 unsigned int sceLibcHeapSize = 50 * 1024 * 1024;
+
+#ifdef PC_GLES
 
 EGLDisplay eglDisplay;
 EGLConfig glConfig;
 EGLContext eglContext;
 EGLSurface eglSurface;
 const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
+#endif
 
 char *gishDataPath = (char *)"ux0:/data/gish/";
 
@@ -57,7 +60,7 @@ int main(int argc, char *argv[])
   int count;
   int flags;
   const char *temp;
-
+/*
   sceKernelLoadStartModule("vs0:sys/external/libfios2.suprx", 0, NULL, 0, NULL, NULL);
   sceKernelLoadStartModule("vs0:sys/external/libc.suprx", 0, NULL, 0, NULL, NULL);
   sceKernelLoadStartModule("app0:libgpu_es4_ext.suprx", 0, NULL, 0, NULL, NULL);
@@ -67,6 +70,7 @@ int main(int argc, char *argv[])
 
   PVRSRVInitializeAppHint(&hint);
   PVRSRVCreateVirtualAppHint(&hint);
+*/
   scePowerSetArmClockFrequency(444);
   scePowerSetGpuClockFrequency(222);
 
@@ -108,7 +112,7 @@ int main(int argc, char *argv[])
 
   TO_DEBUG_LOG("Main.c Opening screen %dx%dx%d depth: %d, stencil: %d\n", windowinfo.resolutionx,
                windowinfo.resolutiony, windowinfo.bitsperpixel, windowinfo.depthbits, windowinfo.stencilbits);
-
+/*
   EGLint egl_config_attr[] = {
     EGL_BUFFER_SIZE,  16,
     EGL_DEPTH_SIZE,   16,
@@ -118,8 +122,16 @@ int main(int argc, char *argv[])
   };
 
   EGLint numConfigs, majorVersion, minorVersion;
+*/
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+
   globalwindow = SDL_CreateWindow("Gish GLES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowinfo.resolutionx,
-                                  windowinfo.resolutiony, SDL_WINDOW_FULLSCREEN);
+                                  windowinfo.resolutiony, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+
+  SDL_GLContext glc = SDL_GL_CreateContext(globalwindow);
+/*
 
   eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   eglInitialize(eglDisplay, &majorVersion, &minorVersion);
@@ -132,7 +144,7 @@ int main(int argc, char *argv[])
   eglContext = eglCreateContext(eglDisplay, glConfig, EGL_NO_CONTEXT, NULL);
   eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
   eglSwapInterval(eglDisplay, (EGLint)1); // VSYNC
-
+*/
   if (globalwindow == NULL)
   {
     printf("No SDL screen\n");
@@ -196,9 +208,9 @@ int main(int argc, char *argv[])
   if (config.sound)
     shutdownaudio();
 
-  eglDestroySurface(eglDisplay, eglSurface);
-  eglDestroyContext(eglDisplay, eglContext);
-  eglTerminate(eglDisplay);
+//  eglDestroySurface(eglDisplay, eglSurface);
+//  eglDestroyContext(eglDisplay, eglContext);
+//  eglTerminate(eglDisplay);
 
   SDL_Quit();
 
