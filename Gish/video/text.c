@@ -443,6 +443,10 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 
 void drawmousecursor(int texturenum, int x, int y, int textsize, float red, float green, float blue, float alpha)
 {
+#ifdef __vita__
+  /* Vita port: no mouse cursor. */
+  return;
+#endif
   if (!touchcontrols)
   {
     float vec[3];
