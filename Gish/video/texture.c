@@ -57,8 +57,7 @@ int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, in
 
   if ((fp = fopen(filepath, "rb")) == NULL)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: fopen error\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED fopen\n", texturenum, filename);
 
     return -1;
   }
@@ -68,8 +67,7 @@ int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, in
 
   if (tgaheader.imagetypecode != 2 && tgaheader.imagetypecode != 3)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: bad format\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED bad format\n", texturenum, filename);
 
     fclose(fp);
 
@@ -185,8 +183,7 @@ int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wrap
 
   if ((fp = fopen(filepath, "rb")) == NULL)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: fopen error\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED fopen\n", texturenum, filename);
 
     return -1;
   }
@@ -196,8 +193,7 @@ int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wrap
 
   if (tgaheader.imagetypecode != 2 && tgaheader.imagetypecode != 3)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: bad format\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED bad format\n", texturenum, filename);
 
     fclose(fp);
 
@@ -324,7 +320,7 @@ void loadtexturetgapartial(int texturenum, char *filename, int startx, int start
     if ((fp = fopen(filepath, "rb")) == NULL)
     {
       if (debug_texture_load)
-        printf("Texture Load Failed: %d\n", texturenum);
+        fprintf(stderr, "Texture Load Failed: %d\n", texturenum);
 
       return;
     }

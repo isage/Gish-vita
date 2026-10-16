@@ -55,6 +55,7 @@ const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
 
 char *gishDataPath = (char *)"ux0:/data/gish/";
 
+
 int main(int argc, char *argv[])
 {
   int count;
@@ -71,6 +72,7 @@ int main(int argc, char *argv[])
   PVRSRVInitializeAppHint(&hint);
   PVRSRVCreateVirtualAppHint(&hint);
 */
+
   scePowerSetArmClockFrequency(444);
   scePowerSetGpuClockFrequency(222);
 
@@ -129,6 +131,7 @@ int main(int argc, char *argv[])
 
   globalwindow = SDL_CreateWindow("Gish GLES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowinfo.resolutionx,
                                   windowinfo.resolutiony, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+  TO_DEBUG_LOG("CreateWindow -> %p err=[%s]\n", (void *)globalwindow, SDL_GetError());
 
   SDL_GLContext glc = SDL_GL_CreateContext(globalwindow);
 /*
@@ -152,6 +155,10 @@ int main(int argc, char *argv[])
 
   loadglextentions();
 
+  TO_DEBUG_LOG("GL ctx=%p err=[%s]\n", (void *)glc, SDL_GetError());
+  if (glc)
+    TO_DEBUG_LOG("GL_VERSION=[%s] RENDERER=[%s]\n", (const char *)glGetString(GL_VERSION),
+                 (const char *)glGetString(GL_RENDERER));
   for (count = 0; count < 2048; count++)
     glGenTextures(1, &texture[count].glname);
 
