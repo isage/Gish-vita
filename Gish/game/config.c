@@ -137,6 +137,7 @@ void loadconfig(void)
   config.stencilbits = 8;
   config.sound       = 1;
   config.music       = 1;
+  config.keepaspect  = 1;
 #ifndef ANDROID_NDK
   config.joystick = 1;
 #ifdef __vita__
@@ -213,6 +214,7 @@ void loadconfig(void)
   optionreadint(&config.sound, "sound=");
   optionreadint(&config.music, "music=");
   optionreadint(&config.joystick, "joystick=");
+  optionreadint(&config.keepaspect, "keepaspect=");
 
   optionreadint(&option.sound, "soundon=");
   optionreadint(&option.music, "musicon=");
@@ -284,6 +286,7 @@ void saveconfig(void)
   optionwriteint(fp, &config.sound, "sound=");
   optionwriteint(fp, &config.music, "music=");
   optionwriteint(fp, &config.joystick, "joystick=");
+  optionwriteint(fp, &config.keepaspect, "keepaspect=");
 
   optionwriteint(fp, &option.sound, "soundon=");
   optionwriteint(fp, &option.music, "musicon=");

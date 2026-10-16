@@ -188,11 +188,22 @@ int main(int argc, char *argv[])
   font.sizex      = 640;
   font.sizey      = 480;
 
-  /* 4:3 render area: width 725 fits the 960x544 framebuffer (544*4/3), centered */
-  renderareaw = 725;
-  renderareah = windowinfo.resolutiony;
-  renderareax = (windowinfo.resolutionx - renderareaw) / 2;
-  renderareay = (windowinfo.resolutiony - renderareah) / 2;
+  if (config.keepaspect)
+  {
+    /* 4:3 render area: width 725 fits the 960x544 framebuffer (544*4/3), centered */
+    renderareaw = 725;
+    renderareah = windowinfo.resolutiony;
+    renderareax = (windowinfo.resolutionx - renderareaw) / 2;
+    renderareay = (windowinfo.resolutiony - renderareah) / 2;
+  }
+  else
+  {
+    /* stretched: use the whole framebuffer (pre-4:3-change behavior) */
+    renderareax = 0;
+    renderareay = 0;
+    renderareaw = windowinfo.resolutionx;
+    renderareah = windowinfo.resolutiony;
+  }
 
   loadtexturetga_app(1000, "font00.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);
   loadtexturetga(1001, "font01.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);

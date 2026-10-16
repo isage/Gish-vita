@@ -42,6 +42,7 @@ typedef struct
   int depthbits;
   int stencilbits;
   int fullscreen;
+  int keepaspect;
   int sound;
   int music;
   int joystick;
