@@ -272,7 +272,7 @@ void mainmenu(void)
   resetmenuitems();
 
   joymenunum     = 1;
-  game.turbomode = 1;
+  game.turbomode = 0;
 
   while (!menuitem[0].active && !windowinfo.shutdown)
   {
