@@ -42,4 +42,7 @@ typedef struct
 
 extern _windowinfo windowinfo;
 
+/* 4:3 render area inside the full framebuffer (initialized in main.c) */
+extern int renderareax, renderareay, renderareaw, renderareah;
+
 #endif /* GISH_SDL_EVENT_H */

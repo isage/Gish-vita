@@ -1,3 +1,5 @@
 build
 *.suprx
 *.bin
+build.log
+scratch/*

@@ -55,6 +55,8 @@ const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
 
 char *gishDataPath = (char *)"ux0:/data/gish/";
 
+/* 4:3 render area inside the full framebuffer */
+int renderareax, renderareay, renderareaw, renderareah;
 
 int main(int argc, char *argv[])
 {
@@ -185,6 +187,12 @@ int main(int argc, char *argv[])
   font.cursornum  = 0;
   font.sizex      = 640;
   font.sizey      = 480;
+
+  /* 4:3 render area: width 725 fits the 960x544 framebuffer (544*4/3), centered */
+  renderareaw = 725;
+  renderareah = windowinfo.resolutiony;
+  renderareax = (windowinfo.resolutionx - renderareaw) / 2;
+  renderareay = (windowinfo.resolutiony - renderareah) / 2;
 
   loadtexturetga_app(1000, "font00.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);
   loadtexturetga(1001, "font01.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);
