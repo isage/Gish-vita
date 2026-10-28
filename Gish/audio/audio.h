@@ -36,7 +36,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ivorbisfile.h>
 #endif
 
-#define OGGBUFFERSIZE 4096 * 8
+#define OGGBUFFERSIZE 4096 * 2
+#define OGGNUMBUFFERS 12
+#define OGGINITBUFFERS 8
 
 void setupaudio(void);
 int updateogg(void);
@@ -60,6 +62,6 @@ extern ALenum oggformat;
 extern char oggdata[OGGBUFFERSIZE];
 
 extern ALuint oggsource;
-extern ALuint oggbuffer[2];
+extern ALuint oggbuffer[OGGNUMBUFFERS];
 
 #endif /* GISH_AUDIO_AUDIO_H */

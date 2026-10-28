@@ -93,10 +93,15 @@ void checkmusic(void)
         else
           oggformat = AL_FORMAT_STEREO16;
 
-        streamogg(oggbuffer[0]);
-        streamogg(oggbuffer[1]);
+        queued = 0;
+        for (count = 0; count < OGGINITBUFFERS; count++)
+          if (streamogg(oggbuffer[count]))
+            queued++;
+          else
+            break;
 
-        alSourceQueueBuffers(oggsource, 2, oggbuffer);
+        if (queued > 0)
+          alSourceQueueBuffers(oggsource, queued, oggbuffer);
 
         vec[0] = 0.0f;
         vec[1] = 0.0f;

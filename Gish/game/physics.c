@@ -461,8 +461,6 @@ void objectcollisionobject(int objectnum)
           }
     }
 
-  updateogg();
-
   for (objectcount = 0; objectcount < numofobjects; objectcount++)
     if (objectnum != objectcount)
       if (objecttype[object[objectnum].type].collide[object[objectcount].type])
@@ -716,8 +714,6 @@ void bondsimulation2(void)
 
   for (count = 0; count < 32; count++)
   {
-    updateogg();
-
     for (count2 = 0; count2 < numofparticles; count2++)
       copyvector(particle[count2].prevvelocity, particle[count2].velocity);
 

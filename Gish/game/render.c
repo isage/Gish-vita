@@ -54,8 +54,6 @@ void renderlevelback(void)
   GLuint oldtex = 0;
   // float texcoord[2];
 
-  updateogg();
-
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
       for (count2 = view.position[0] - view.zoomx; count2 <= view.position[0] + view.zoomx; count2++)
@@ -270,8 +268,6 @@ void renderlevel(void)
   float normal[3];
   float scale;
   GLuint oldtex = 0;
-
-  updateogg();
 
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
@@ -552,8 +548,6 @@ void renderlevelfore(void)
   int blocknum;
   float vec[3];
   GLuint oldtex = 0;
-
-  updateogg();
 
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
@@ -1038,8 +1032,6 @@ void renderobjects(void)
   float normal[3];
   float color[4];
   float size;
-
-  updateogg();
 
   for (count = 0; count < numofobjectrenders; count++)
   {

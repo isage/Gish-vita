@@ -155,6 +155,10 @@ void gameloop(void)
     perf_now   = SDL_GetPerformanceCounter();
     perf_tick  = perf_now;
 
+    /* Music streaming: exactly one call per frame, at the top of the frame,
+       so a decode slice never lands inside the sim or the draw loop. */
+    updateogg();
+
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glStencilMask(~0);
@@ -885,20 +889,16 @@ void simulation(void)
 
   for (count = 0; count < numofobjects; count++)
   {
-    updateogg();
     objectcollision(count);
   }
 
   for (count = 0; count < numofobjects; count++)
   {
-    updateogg();
     objectcollisionobject(count);
   }
 
   objectcycle();
   objectanimation();
-
-  updateogg();
 
   bondsimulation2();
   checkbonds();
