@@ -130,9 +130,30 @@ void gameloop(void)
   if (level.gametype == GAMETYPE_4FOOTBALL || level.gametype == GAMETYPE_4SUMO)
     view.zoom = 14.0f;
 
+  /* PERF INSTRUMENTATION (temporary) */
+  static Uint64 perf_freq = 0, perf_prev = 0, perf_window = 0;
+  static Uint64 perf_render = 0, perf_sim = 0, perf_sim_max = 0, perf_frame_max = 0;
+  static Uint64 perf_sec[11], perf_sec_max[11], perf_tick = 0;
+  static int perf_frames = 0, perf_steps = 0, perf_catchup = 0;
+  if (perf_freq == 0)
+    perf_freq = SDL_GetPerformanceFrequency();
+/* slots: 0=clear/bg 1=light 2=setupobj 3=shadow 4=lvlbak 5=part 6=obj 7=part2 8=lvl 9=lvlfore 10=rest */
+#define PERF_SEC(i)                                                                                                    \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    Uint64 _pn = SDL_GetPerformanceCounter(), _pd = _pn - perf_tick;                                                   \
+    perf_sec[i] += _pd;                                                                                                \
+    if (_pd > perf_sec_max[i])                                                                                         \
+      perf_sec_max[i] = _pd;                                                                                           \
+    perf_tick = _pn;                                                                                                   \
+  } while (0)
+
   while ((game.exit < GAMEEXIT_EXITGAME || game.exitdelay > 0) && !windowinfo.shutdown)
   {
+    Uint64 perf_now, perf_t_sim0, perf_t_sim1;
     frametimer = SDL_GetTicks();
+    perf_now   = SDL_GetPerformanceCounter();
+    perf_tick  = perf_now;
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -150,6 +171,7 @@ void gameloop(void)
 #endif
     if (level.background[0] != 0)
       displaybackground(660);
+    PERF_SEC(0);
 
     if (game.over != 0 && level.gametype < GAMETYPE_2FOOTBALL)
       if (game.exit == GAMEEXIT_NONE)
@@ -435,23 +457,32 @@ void gameloop(void)
     { // cave6.lvl boss
       setupframelighting_fix_cave6_boss();
     }
+    PERF_SEC(1);
 
     setuprenderobjects();
+    PERF_SEC(2);
 
     if (shadow_enabled)
       rendershadows();
+    PERF_SEC(3);
 
     renderlevelback();
+    PERF_SEC(4);
 
     renderparticles();
+    PERF_SEC(5);
 
     // if (!keyboard[SCAN_B])
     renderobjects();
+    PERF_SEC(6);
 
     renderparticles2();
+    PERF_SEC(7);
 
     renderlevel();
+    PERF_SEC(8);
     renderlevelfore();
+    PERF_SEC(9);
 
     if (game.oldschool == 1) // || game.oldschool==3)
     {
@@ -637,6 +668,8 @@ void gameloop(void)
     if (game.exit != GAMEEXIT_NONE || game.godmode)
       drawmousecursor(768 + font.cursornum, mouse.x, mouse.y, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
+    PERF_SEC(10);
+    perf_t_sim0   = SDL_GetPerformanceCounter();
     simcount      = 0;
     game.simspeed = 20;
     if (game.turbomode)
@@ -673,6 +706,17 @@ void gameloop(void)
           simulation();
         gamelogic();
       }
+    }
+    perf_t_sim1 = SDL_GetPerformanceCounter();
+    {
+      Uint64 dt = perf_t_sim1 - perf_t_sim0;
+      perf_render += perf_t_sim0 - perf_now;
+      perf_sim    += dt;
+      if (dt > perf_sim_max)
+        perf_sim_max = dt;
+      perf_steps  += simcount;
+      if (simcount >= 3)
+        perf_catchup++;
     }
 
     if (game.levelnum == 0 && game.editing)
@@ -715,6 +759,48 @@ void gameloop(void)
 
     if ((SDL_GetTicks() - frametimer) != 0)
       fps = 1000 / (SDL_GetTicks() - frametimer);
+    {
+      Uint64 perf_end = SDL_GetPerformanceCounter();
+      Uint64 frame    = perf_end - perf_now;
+      if (perf_prev != 0)
+      {
+        perf_frames++;
+        if (frame > perf_frame_max)
+          perf_frame_max = frame;
+        if (perf_end - perf_window >= perf_freq)
+        {
+          double k   = 1000.0 / (double)perf_freq;
+          double n   = (double)perf_frames;
+          double avg = k * (double)(perf_end - perf_window) / n;
+          double r   = k * (double)perf_render / n;
+          double s   = k * (double)perf_sim / n;
+          double v[11];
+          int i;
+          for (i = 0; i < 11; i++)
+            v[i] = k * (double)perf_sec[i] / n;
+          TO_DEBUG_LOG("PERF %d fps | frame %.2f (max %.2f) | render %.2f | sim %.2f (max %.2f) | wait %.2f | steps %d catchup %d\n",
+                       perf_frames, avg, k * (double)perf_frame_max, r, s,
+                       k * (double)perf_sim_max, avg - r - s, perf_steps, perf_catchup);
+          TO_DEBUG_LOG("PERF2 bg %.2f light %.2f setup %.2f shad %.2f | lvlb %.2f part %.2f obj %.2f part2 %.2f | lvl %.2f lvlf %.2f rest %.2f\n",
+                       v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]);
+          TO_DEBUG_LOG("PERF3 worst-ms bg %.2f setup %.2f lvlb %.2f obj %.2f lvl %.2f lvlf %.2f rest %.2f\n",
+                       k * (double)perf_sec_max[0], k * (double)perf_sec_max[2],
+                       k * (double)perf_sec_max[4], k * (double)perf_sec_max[6],
+                       k * (double)perf_sec_max[8], k * (double)perf_sec_max[9],
+                       k * (double)perf_sec_max[10]);
+          perf_frames = perf_steps = perf_catchup = 0;
+          perf_render = perf_sim = perf_sim_max = perf_frame_max = 0;
+          for (i = 0; i < 11; i++)
+            perf_sec[i] = perf_sec_max[i] = 0;
+          perf_window = perf_end;
+        }
+      }
+      else
+      {
+        perf_window = perf_end;
+      }
+      perf_prev = perf_end;
+    }
   }
 
   game.songnum = -1;
