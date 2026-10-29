@@ -571,8 +571,19 @@ void renderlevelfore(void)
 {
   int count, count2;
   int blocknum;
-  float vec[3];
-  GLuint oldtex = 0;
+
+  /* This is the layer that carries alpha content (grates, water, decals).
+     Batching it is still exact: a fore tile draws only its own cell, so two
+     fore tiles never cover the same pixel and their order cannot matter; and
+     the whole layer is still drawn after the mid layer. */
+#if defined(GLES)
+  glColor4f(level.ambient[2][0], level.ambient[2][1], level.ambient[2][2], 1.0f);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#else
+  glColor3fv(level.ambient[2]);
+#endif
+  levelbatch_begin();
 
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
@@ -586,54 +597,14 @@ void renderlevelfore(void)
               blocknum += (game.framenum / block[blocknum].animationspeed) % block[blocknum].animation;
 
           if (blocknum != 0)
-          {
-            // ptitSeb optimizations for Pandora
-            if (oldtex != texture[blocknum].glname)
-            {
-              oldtex = texture[blocknum].glname;
-              glBindTexture(GL_TEXTURE_2D, oldtex /*texture[blocknum].glname*/);
-            }
-#if defined(GLES)
-            glColor4f(level.ambient[2][0], level.ambient[2][1], level.ambient[2][2], 1.0f);
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            GLfloat quad[] = {(float)count2,        (float)count + 1.0f, (float)count2 + 1.0f, (float)count + 1.0f,
-                              (float)count2 + 1.0f, (float)count,        (float)count2,        (float)count};
-            GLfloat tx[]   = {0, 0, 1, 0, 1, 1, 0, 1};
-            glVertexPointer(2, GL_FLOAT, 0, quad);
-            glTexCoordPointer(2, GL_FLOAT, 0, tx);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glDisableClientState(GL_VERTEX_ARRAY);
-#else
-            glBegin(GL_QUADS);
-
-            glColor3fv(level.ambient[2]);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(0.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(1.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count;
-            glTexCoord2f(1.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count;
-            glTexCoord2f(0.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            glEnd();
-#endif
-          }
+            levelbatch_add(blocknum, count2, count);
         }
+
+  levelbatch_flush();
+#if defined(GLES)
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+#endif
 }
 
 void renderbonds(void)
