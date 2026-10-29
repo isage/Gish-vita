@@ -44,6 +44,139 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 _frame frame;
 
+/* ---------------------------------------------------------------------------
+   Level tile batching
+
+   The level passes used to issue one glDrawArrays per visible cell (~700 per
+   layer at ~8 us each, i.e. ~5 ms per layer).  Every cell of a layer draws
+   exactly its own 1x1 cell with axis-aligned geometry, so tiles inside one
+   layer never overlap and their drawing order cannot matter: whatever the
+   order, each cell ends up covered by its own tile only.  That lets us group
+   the visible cells by block number - which is also the texture index - and
+   emit one draw call per texture instead of one per tile.
+
+   Usage: levelbatch_begin(), levelbatch_add() per visible cell, then
+   levelbatch_flush().  The caller owns the colour and the client arrays:
+   colour is set once per layer, GL_VERTEX_ARRAY / GL_TEXTURE_COORD_ARRAY are
+   enabled before begin() and disabled after flush().  Nothing is allocated.
+   --------------------------------------------------------------------------- */
+
+#define LEVELBATCH_MAX 1024    /* ~840 visible cells at the largest zoom */
+#define LEVELBATCH_BLOCKS 1024 /* block[] bound, block number == texture index */
+
+static int   levelbatch_block[LEVELBATCH_MAX];
+static float levelbatch_x[LEVELBATCH_MAX];
+static float levelbatch_y[LEVELBATCH_MAX];
+static int   levelbatch_num;
+
+static int   levelbatch_start[LEVELBATCH_BLOCKS];
+static int   levelbatch_count[LEVELBATCH_BLOCKS];
+static int   levelbatch_cursor[LEVELBATCH_BLOCKS];
+static int   levelbatch_order[LEVELBATCH_MAX];
+static float levelbatch_verts[LEVELBATCH_MAX * 12];
+static float levelbatch_texco[LEVELBATCH_MAX * 12];
+
+static void levelbatch_flush(void)
+{
+  int blocknum, count, i, num;
+  int first, numquads;
+  float *vp, *tp;
+
+  num = levelbatch_num;
+  if (num == 0)
+    return;
+
+  /* counting sort by block number */
+  for (blocknum = 0; blocknum < LEVELBATCH_BLOCKS; blocknum++)
+    levelbatch_count[blocknum] = 0;
+  for (i = 0; i < num; i++)
+    levelbatch_count[levelbatch_block[i]]++;
+
+  count = 0;
+  for (blocknum = 0; blocknum < LEVELBATCH_BLOCKS; blocknum++)
+  {
+    levelbatch_start[blocknum]  = count;
+    levelbatch_cursor[blocknum] = count;
+    count += levelbatch_count[blocknum];
+  }
+  for (i = 0; i < num; i++)
+    levelbatch_order[levelbatch_cursor[levelbatch_block[i]]++] = i;
+
+  for (blocknum = 1; blocknum < LEVELBATCH_BLOCKS; blocknum++)
+  {
+    numquads = levelbatch_count[blocknum];
+    first    = levelbatch_start[blocknum];
+    if (numquads == 0)
+      continue;
+
+    glBindTexture(GL_TEXTURE_2D, texture[blocknum].glname);
+
+#if defined(GLES)
+    /* same vertices, same texcoords and same winding as the old
+       GL_TRIANGLE_FAN, emitted as two triangles per cell */
+    vp = levelbatch_verts;
+    tp = levelbatch_texco;
+    for (i = 0; i < numquads; i++)
+    {
+      int   q = levelbatch_order[first + i];
+      float x = levelbatch_x[q];
+      float y = levelbatch_y[q];
+
+      *vp++ = x;     *vp++ = y + 1.0f; *tp++ = 0.0f; *tp++ = 0.0f;
+      *vp++ = x + 1.0f; *vp++ = y + 1.0f; *tp++ = 1.0f; *tp++ = 0.0f;
+      *vp++ = x + 1.0f; *vp++ = y;     *tp++ = 1.0f; *tp++ = 1.0f;
+      *vp++ = x;     *vp++ = y + 1.0f; *tp++ = 0.0f; *tp++ = 0.0f;
+      *vp++ = x + 1.0f; *vp++ = y;     *tp++ = 1.0f; *tp++ = 1.0f;
+      *vp++ = x;     *vp++ = y;     *tp++ = 0.0f; *tp++ = 1.0f;
+    }
+    glVertexPointer(2, GL_FLOAT, 0, levelbatch_verts);
+    glTexCoordPointer(2, GL_FLOAT, 0, levelbatch_texco);
+    glDrawArrays(GL_TRIANGLES, 0, numquads * 6);
+#else
+    glBegin(GL_QUADS);
+    for (i = 0; i < numquads; i++)
+    {
+      int   q = levelbatch_order[first + i];
+      float x = levelbatch_x[q];
+      float y = levelbatch_y[q];
+
+      glTexCoord2f(0.0f, 0.0f);
+      glVertex3f(x, y + 1.0f, 0.0f);
+      glTexCoord2f(1.0f, 0.0f);
+      glVertex3f(x + 1.0f, y + 1.0f, 0.0f);
+      glTexCoord2f(1.0f, 1.0f);
+      glVertex3f(x + 1.0f, y, 0.0f);
+      glTexCoord2f(0.0f, 1.0f);
+      glVertex3f(x, y, 0.0f);
+    }
+    glEnd();
+#endif
+  }
+
+  levelbatch_num = 0;
+}
+
+static void levelbatch_begin(void)
+{
+  levelbatch_num = 0;
+}
+
+static void levelbatch_add(int blocknum, int x, int y)
+{
+  /* block number doubles as the texture index; out of range means the level
+     data is broken, in which case the old code read past block[] - skip it */
+  if (blocknum <= 0 || blocknum >= LEVELBATCH_BLOCKS)
+    return;
+
+  if (levelbatch_num >= LEVELBATCH_MAX)
+    levelbatch_flush();
+
+  levelbatch_block[levelbatch_num] = blocknum;
+  levelbatch_x[levelbatch_num]     = (float)x;
+  levelbatch_y[levelbatch_num]     = (float)y;
+  levelbatch_num++;
+}
+
 void renderlevelback(void)
 {
   int count, count2;
@@ -53,6 +186,15 @@ void renderlevelback(void)
   float vec[3];
   GLuint oldtex = 0;
   // float texcoord[2];
+
+#if defined(GLES)
+  glColor4f(level.ambient[0][0], level.ambient[0][1], level.ambient[0][2], 1.0f);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#else
+  glColor3fv(level.ambient[0]);
+#endif
+  levelbatch_begin();
 
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
@@ -78,54 +220,14 @@ void renderlevelback(void)
                   blocknum = 0;
 
           if (blocknum != 0)
-          {
-            // ptitSeb optimizations for Pandora
-            if (oldtex != texture[blocknum].glname)
-            {
-              oldtex = texture[blocknum].glname;
-              glBindTexture(GL_TEXTURE_2D, oldtex /*texture[blocknum].glname*/);
-            }
-#if defined(GLES)
-            glColor4f(level.ambient[0][0], level.ambient[0][1], level.ambient[0][2], 1.0f);
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            GLfloat quad[] = {(float)count2,        (float)count + 1.0f, (float)count2 + 1.0f, (float)count + 1.0f,
-                              (float)count2 + 1.0f, (float)count,        (float)count2,        (float)count};
-            GLfloat tx[]   = {0, 0, 1, 0, 1, 1, 0, 1};
-            glVertexPointer(2, GL_FLOAT, 0, quad);
-            glTexCoordPointer(2, GL_FLOAT, 0, tx);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glDisableClientState(GL_VERTEX_ARRAY);
-#else
-            glBegin(GL_QUADS);
-
-            glColor3fv(level.ambient[0]);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(0.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(1.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count;
-            glTexCoord2f(1.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count;
-            glTexCoord2f(0.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            glEnd();
-#endif
-          }
+            levelbatch_add(blocknum, count2, count);
         }
+
+  levelbatch_flush();
+#if defined(GLES)
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+#endif
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
@@ -269,6 +371,15 @@ void renderlevel(void)
   float scale;
   GLuint oldtex = 0;
 
+#if defined(GLES)
+  glColor4f(level.ambient[1][0], level.ambient[1][1], level.ambient[1][2], 1.0f);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+#else
+  glColor3fv(level.ambient[1]);
+#endif
+  levelbatch_begin();
+
   for (count = view.position[1] - view.zoomy; count <= view.position[1] + view.zoomy; count++)
     if (count >= 0 && count < 256)
       for (count2 = view.position[0] - view.zoomx; count2 <= view.position[0] + view.zoomx; count2++)
@@ -293,100 +404,14 @@ void renderlevel(void)
                 blocknum = 0;
 
           if (blocknum != 0)
-          {
-            // ptitSeb optimizations for Pandora
-            if (oldtex != texture[blocknum].glname)
-            {
-              oldtex = texture[blocknum].glname;
-              glBindTexture(GL_TEXTURE_2D, oldtex /*texture[blocknum].glname*/);
-            }
-
-#if defined(GLES)
-            glColor4f(level.ambient[1][0], level.ambient[1][1], level.ambient[1][2], 1.0f);
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            GLfloat quad[] = {(float)count2,        (float)count + 1.0f, (float)count2 + 1.0f, (float)count + 1.0f,
-                              (float)count2 + 1.0f, (float)count,        (float)count2,        (float)count};
-            GLfloat tx[]   = {0, 0, 1, 0, 1, 1, 0, 1};
-            glVertexPointer(2, GL_FLOAT, 0, quad);
-            glTexCoordPointer(2, GL_FLOAT, 0, tx);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glDisableClientState(GL_VERTEX_ARRAY);
-#else
-            glBegin(GL_QUADS);
-
-            glColor3fv(level.ambient[1]);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(0.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count + 1.0f;
-            glTexCoord2f(1.0f, 0.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2 + 1.0f;
-            vec[1] = (float)count;
-            glTexCoord2f(1.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            vec[0] = (float)count2;
-            vec[1] = (float)count;
-            glTexCoord2f(0.0f, 1.0f);
-            glVertex3f(vec[0], vec[1], 0.0f);
-
-            glEnd();
-#endif
-            /*
-            if (block[blocknum].friction<0.1f)
-              {
-              glDisable(GL_TEXTURE_2D);
-
-              for (count3=0;count3<block[blocknum].numoflines;count3++)
-              if (((level.gridflags[count][count2]>>count3)&1)==0)
-                {
-                normal[0]=-(block[blocknum].line[count3][3]-block[blocknum].line[count3][1]);
-                normal[1]=(block[blocknum].line[count3][2]-block[blocknum].line[count3][0]);
-                normal[2]=0.0f;
-                normalizevector(normal,normal);
-
-                glBegin(GL_QUADS);
-
-                glColor4f(0.25f,0.25f,0.25f,1.0f);
-
-                vec[0]=(float)count2+block[blocknum].line[count3][0];
-                vec[1]=(float)count+block[blocknum].line[count3][1];
-                vec[2]=0.0f;
-                glVertex3fv(vec);
-
-                vec[0]=(float)count2+block[blocknum].line[count3][2];
-                vec[1]=(float)count+block[blocknum].line[count3][3];
-                vec[2]=0.0f;
-                glVertex3fv(vec);
-
-                glColor4f(0.25f,0.25f,0.25f,0.0f);
-
-                vec[0]=(float)count2+block[blocknum].line[count3][2]-normal[0]*0.125f*0.5f;
-                vec[1]=(float)count+block[blocknum].line[count3][3]-normal[1]*0.125f*0.5f;
-                vec[2]=0.0f;
-                glVertex3fv(vec);
-
-                vec[0]=(float)count2+block[blocknum].line[count3][0]-normal[0]*0.125f*0.5f;
-                vec[1]=(float)count+block[blocknum].line[count3][1]-normal[1]*0.125f*0.5f;
-                vec[2]=0.0f;
-                glVertex3fv(vec);
-
-                glEnd();
-                }
-
-              glEnable(GL_TEXTURE_2D);
-              }
-            */
-          }
+            levelbatch_add(blocknum, count2, count);
         }
+
+  levelbatch_flush();
+#if defined(GLES)
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+#endif
 
   glBlendFunc(GL_ONE, GL_ONE);
 
