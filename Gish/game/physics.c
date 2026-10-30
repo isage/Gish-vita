@@ -695,6 +695,16 @@ void bondsimulation2(void)
   float force[2];
   float temp;
   float scale;
+  int   itc[PERFBOND_TYPES];
+  int   count3;
+
+  for (count3 = 0; count3 < PERFBOND_TYPES; count3++)
+    itc[count3] = 0;
+
+  perf_bond_start();
+  perf_bond_temps += physicstemp.numofbonds;
+  if (physicstemp.numofbonds > perf_bond_max)
+    perf_bond_max = physicstemp.numofbonds;
 
   for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
   {
@@ -711,11 +721,17 @@ void bondsimulation2(void)
     normalizevector(bond[count2].bondnormal, bond[count2].bondnormal);
     bond[count2].oomass = 1.0f / (particle[part1].mass + particle[part2].mass);
   }
+  perf_bond_probe(PERFBOND_PRE);
+
+  /* probe cost self-check: 128 empty probes, charged to PERFBOND_CALIB */
+  for (count3 = 0; count3 < 128; count3++)
+    perf_bond_probe(PERFBOND_CALIB);
 
   for (count = 0; count < 32; count++)
   {
     for (count2 = 0; count2 < numofparticles; count2++)
       copyvector(particle[count2].prevvelocity, particle[count2].velocity);
+    perf_bond_probe(PERFBOND_COPY);
 
     for (count2 = 0; count2 < numofbonds; count2++)
       if ((count & bond[count2].cycles) == 0)
@@ -751,10 +767,15 @@ void bondsimulation2(void)
         scaleaddvectors2(particle[part1].velocity, particle[part1].velocity, bondnormal, force[0]);
         scaleaddvectors2(particle[part2].velocity, particle[part2].velocity, bondnormal, -force[1]);
       }
+    perf_bond_probe(PERFBOND_GLOBAL);
 
     for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
       if ((count & physicstemp.bond[count2].cycles) == 0)
       {
+        {
+          int bt = physicstemp.bond[count2].type;
+          itc[(bt >= 0 && bt < 6) ? bt : 6]++;
+        }
         if (physicstemp.bond[count2].type == 0)
         {
           part1 = physicstemp.bond[count2].part1;
@@ -927,7 +948,12 @@ void bondsimulation2(void)
           addvectors2(physicstemp.bond[count2].forceapplied[1], physicstemp.bond[count2].forceapplied[1], vec);
         }
       }
+    perf_bond_probe(PERFBOND_TEMP);
   }
+  perf_bond_probe(PERFBOND_REST);
+
+  for (count3 = 0; count3 < PERFBOND_TYPES; count3++)
+    perf_bond_itcnt[count3] += itc[count3];
 
   for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
   {

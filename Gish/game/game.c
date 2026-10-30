@@ -78,6 +78,94 @@ int fix_boss_logic_when_lights_off = 0;
 
 int fps, fps_cache = 0, fps_renew = 0, fps_mean;
 
+/* ---------------------------------------------------------------------------
+   PERF INSTRUMENTATION (temporary) - simulation breakdown
+
+   The render side is ticked inside gameloop(); the sim side is ticked inside
+   simulation(), so these counters have to live at file scope.  Each slot is
+   ticked once per simulation step, so the reported averages are ms per step.
+
+   The perf lines are mirrored to <gishDataPath>perf.log as well, because a
+   dropped Cat-A-Log connection silently loses whole sections of a session.
+
+   Remove this block and every PERF_SIM/PERF_EMIT call before a public release.
+   --------------------------------------------------------------------------- */
+
+enum
+{
+  PERFSIM_PARTICLES = 0, /* particlesimulation, lifetime, gravity, particlecollision */
+  PERFSIM_OBJWORLD,      /* objectcollision() loop    - objects vs level blocks   */
+  PERFSIM_OBJOBJ,        /* objectcollisionobject()   - objects vs each other      */
+  PERFSIM_CYCLE,         /* objectcycle() + objectanimation()                      */
+  PERFSIM_BONDS,         /* bondsimulation2()                                      */
+  PERFSIM_CHECKBONDS,    /* checkbonds()                                           */
+  PERFSIM_OBJTTL,        /* objecttimetolive()                                     */
+  PERFSIM_SPRITES,       /* spritesimulation() + spritetimetolive()                */
+  PERFSIM_BOSS,          /* bosssimulation() + bosstimetolive()                    */
+  PERFSIM_DAMAGE,        /* damage / particle-spawn loop at the end of simulation  */
+  PERFSIM_LOGIC,         /* gamelogic(), ticked from the step loop in gameloop()   */
+  PERFSIM_SLOTS
+};
+
+static Uint64 perf_simsec[PERFSIM_SLOTS], perf_simsec_max[PERFSIM_SLOTS];
+static Uint64 perf_simtick;
+static int perf_maxobjs, perf_maxbonds, perf_maxparts;
+
+#define PERF_SIM(i)                                                                                                    \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    Uint64 _sn = SDL_GetPerformanceCounter(), _sd = _sn - perf_simtick;                                                \
+    perf_simsec[i] += _sd;                                                                                             \
+    if (_sd > perf_simsec_max[i])                                                                                      \
+      perf_simsec_max[i] = _sd;                                                                                        \
+    perf_simtick = _sn;                                                                                                \
+  } while (0)
+
+/* PERF INSTRUMENTATION (temporary) - bondsimulation2() sub-timers.
+   A probe charges the time since the previous probe to one slot.  Every probe
+   costs one sceKernelGetProcessTimeWide() read (~0.2 us, 1 us resolution), so
+   the empty calibration loop below measures that cost and it can be
+   subtracted from the reported numbers. */
+unsigned long long perf_bond_us[PERFBOND_SLOTS];
+unsigned long long perf_bond_tick;
+int                perf_bond_max;
+long long          perf_bond_temps;
+long long          perf_bond_itcnt[PERFBOND_TYPES];
+
+void perf_bond_start(void) { perf_bond_tick = SDL_GetPerformanceCounter(); }
+
+void perf_bond_probe(int slot)
+{
+  Uint64 now    = SDL_GetPerformanceCounter();
+  perf_bond_us[slot] += now - perf_bond_tick;
+  perf_bond_tick = now;
+}
+
+/* stderr -> Cat-A-Log.  Deliberately no file mirror: writing to ux0: costs
+   many milliseconds and was visible in the profile as a hitch every 1-3 s.
+
+   One write per report, not one per line: each line sent to Cat-A-Log is a
+   blocking socket write costing ~2 ms, so six separate writes cost ~9 ms of
+   one frame every second.  Lines are therefore formatted into one buffer and
+   sent in a single fprintf. */
+static char perf_linebuf[2048];
+static int  perf_linelen;
+
+static void perfreport(const char *text) { TO_DEBUG_LOG("%s", text); }
+
+/* append one perf line to the report buffer */
+#define PERF_EMIT(...)                                                                                                 \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    int _n = snprintf(perf_linebuf + perf_linelen, sizeof(perf_linebuf) - (size_t)perf_linelen, __VA_ARGS__);           \
+    if (_n > 0)                                                                                                        \
+    {                                                                                                                  \
+      perf_linelen += _n;                                                                                              \
+      if (perf_linelen > (int)sizeof(perf_linebuf) - 1)                                                                \
+        perf_linelen = (int)sizeof(perf_linebuf) - 1;                                                                  \
+    }                                                                                                                  \
+  } while (0)
+
 void gameloop(void)
 {
   int count, count2;
@@ -135,8 +223,12 @@ void gameloop(void)
   static Uint64 perf_render = 0, perf_sim = 0, perf_sim_max = 0, perf_frame_max = 0;
   static Uint64 perf_sec[11], perf_sec_max[11], perf_tick = 0;
   static int perf_frames = 0, perf_steps = 0, perf_catchup = 0;
+  static Uint32 perf_tick0 = 0;
   if (perf_freq == 0)
-    perf_freq = SDL_GetPerformanceFrequency();
+  {
+    perf_freq  = SDL_GetPerformanceFrequency();
+    perf_tick0 = SDL_GetTicks();
+  }
 /* slots: 0=clear/bg 1=light 2=setupobj 3=shadow 4=lvlbak 5=part 6=obj 7=part2 8=lvl 9=lvlfore 10=rest */
 #define PERF_SEC(i)                                                                                                    \
   do                                                                                                                   \
@@ -706,9 +798,11 @@ void gameloop(void)
         else
           loadinputs();
 
+        perf_simtick = SDL_GetPerformanceCounter();
         if (game.startdelay == 0)
           simulation();
         gamelogic();
+        PERF_SIM(PERFSIM_LOGIC);
       }
     }
     perf_t_sim1 = SDL_GetPerformanceCounter();
@@ -780,23 +874,86 @@ void gameloop(void)
           double s   = k * (double)perf_sim / n;
           double v[11];
           int i;
+          int nsteps = perf_steps > 0 ? perf_steps : 1;
+          double sv[PERFSIM_SLOTS], wv[PERFSIM_SLOTS], stot = 0.0;
+          static Uint64 perf_rep_max  = 0; /* worst report cost seen      */
+          static Uint64 perf_rep_prev = 0; /* cost of the previous report */
+          Uint64        perf_rep0;
+          Uint32        perf_tickms;
+          double        perf_winms = k * (double)(perf_end - perf_window);
           for (i = 0; i < 11; i++)
             v[i] = k * (double)perf_sec[i] / n;
-          TO_DEBUG_LOG("PERF %d fps | frame %.2f (max %.2f) | render %.2f | sim %.2f (max %.2f) | wait %.2f | steps %d catchup %d\n",
-                       perf_frames, avg, k * (double)perf_frame_max, r, s,
-                       k * (double)perf_sim_max, avg - r - s, perf_steps, perf_catchup);
-          TO_DEBUG_LOG("PERF2 bg %.2f light %.2f setup %.2f shad %.2f | lvlb %.2f part %.2f obj %.2f part2 %.2f | lvl %.2f lvlf %.2f rest %.2f\n",
-                       v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]);
-          TO_DEBUG_LOG("PERF3 worst-ms bg %.2f setup %.2f lvlb %.2f obj %.2f lvl %.2f lvlf %.2f rest %.2f\n",
-                       k * (double)perf_sec_max[0], k * (double)perf_sec_max[2],
-                       k * (double)perf_sec_max[4], k * (double)perf_sec_max[6],
-                       k * (double)perf_sec_max[8], k * (double)perf_sec_max[9],
-                       k * (double)perf_sec_max[10]);
+          for (i = 0; i < PERFSIM_SLOTS; i++)
+          {
+            sv[i] = k * (double)perf_simsec[i] / (double)nsteps;
+            wv[i] = k * (double)perf_simsec_max[i];
+            stot += sv[i];
+          }
+          /* cost of producing this report itself - the one thing that can make
+             logging look like a game hitch */
+          perf_rep0  = SDL_GetPerformanceCounter();
+          perf_linelen = 0;
+          PERF_EMIT("PERF %d fps | frame %.2f (max %.2f) | render %.2f | sim %.2f (max %.2f) | wait %.2f | steps %d catchup %d\n",
+                    perf_frames, avg, k * (double)perf_frame_max, r, s,
+                    k * (double)perf_sim_max, avg - r - s, perf_steps, perf_catchup);
+          PERF_EMIT("PERF2 bg %.2f light %.2f setup %.2f shad %.2f | lvlb %.2f part %.2f obj %.2f part2 %.2f | lvl %.2f lvlf %.2f rest %.2f\n",
+                    v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]);
+          PERF_EMIT("PERF3 worst-ms bg %.2f setup %.2f lvlb %.2f obj %.2f lvl %.2f lvlf %.2f rest %.2f\n",
+                    k * (double)perf_sec_max[0], k * (double)perf_sec_max[2],
+                    k * (double)perf_sec_max[4], k * (double)perf_sec_max[6],
+                    k * (double)perf_sec_max[8], k * (double)perf_sec_max[9],
+                    k * (double)perf_sec_max[10]);
+          PERF_EMIT("SIM2 ms/step objworld %.2f objobj %.2f bonds %.2f parts %.2f | cycle %.2f check %.2f ttl %.2f | sprite %.2f boss %.2f dmg %.2f | logic %.2f | sum %.2f\n",
+                    sv[PERFSIM_OBJWORLD], sv[PERFSIM_OBJOBJ], sv[PERFSIM_BONDS], sv[PERFSIM_PARTICLES],
+                    sv[PERFSIM_CYCLE], sv[PERFSIM_CHECKBONDS], sv[PERFSIM_OBJTTL],
+                    sv[PERFSIM_SPRITES], sv[PERFSIM_BOSS], sv[PERFSIM_DAMAGE],
+                    sv[PERFSIM_LOGIC], stot);
+          PERF_EMIT("SIM3 worst-ms objworld %.2f objobj %.2f bonds %.2f parts %.2f | cycle %.2f check %.2f ttl %.2f | sprite %.2f boss %.2f dmg %.2f | logic %.2f\n",
+                    wv[PERFSIM_OBJWORLD], wv[PERFSIM_OBJOBJ], wv[PERFSIM_BONDS], wv[PERFSIM_PARTICLES],
+                    wv[PERFSIM_CYCLE], wv[PERFSIM_CHECKBONDS], wv[PERFSIM_OBJTTL],
+                    wv[PERFSIM_SPRITES], wv[PERFSIM_BOSS], wv[PERFSIM_DAMAGE],
+                    wv[PERFSIM_LOGIC]);
+          PERF_EMIT("BOND ms/step pre %.2f copy %.2f glob %.2f temp %.2f rest %.2f calib %.3f | ctmp avg %.0f peak %d | "
+                    "it/step t0 %.0f t1 %.0f t2 %.0f t4 %.0f t5 %.0f bro %.0f\n",
+                    k * (double)perf_bond_us[PERFBOND_PRE] / (double)nsteps,
+                    k * (double)perf_bond_us[PERFBOND_COPY] / (double)nsteps,
+                    k * (double)perf_bond_us[PERFBOND_GLOBAL] / (double)nsteps,
+                    k * (double)perf_bond_us[PERFBOND_TEMP] / (double)nsteps,
+                    k * (double)perf_bond_us[PERFBOND_REST] / (double)nsteps,
+                    k * (double)perf_bond_us[PERFBOND_CALIB] / (double)nsteps,
+                    (double)perf_bond_temps / (double)nsteps, perf_bond_max,
+                    (double)perf_bond_itcnt[0] / (double)nsteps,
+                    (double)perf_bond_itcnt[1] / (double)nsteps,
+                    (double)perf_bond_itcnt[2] / (double)nsteps,
+                    (double)perf_bond_itcnt[4] / (double)nsteps,
+                    (double)perf_bond_itcnt[5] / (double)nsteps,
+                    (double)perf_bond_itcnt[6] / (double)nsteps);
+          /* SDL_GetTicks vs the hi-res counter over the same window: the step
+             loop runs on the former, every ms figure below on the latter. */
+          perf_tickms = SDL_GetTicks() - perf_tick0;
+          perf_tick0  = SDL_GetTicks();
+          PERF_EMIT("SCENE max objs %d bonds %d parts %d | report %.2f (max %.2f) | ticks %u/%.0f\n",
+                    perf_maxobjs, perf_maxbonds, perf_maxparts,
+                    k * (double)perf_rep_prev, k * (double)perf_rep_max,
+                    (unsigned)perf_tickms, perf_winms);
+          perfreport(perf_linebuf);
+          perf_rep_prev = SDL_GetPerformanceCounter() - perf_rep0;
+          if (perf_rep_prev > perf_rep_max)
+            perf_rep_max = perf_rep_prev;
           perf_frames = perf_steps = perf_catchup = 0;
           perf_render = perf_sim = perf_sim_max = perf_frame_max = 0;
+          perf_maxobjs = perf_maxbonds = perf_maxparts = 0;
           for (i = 0; i < 11; i++)
             perf_sec[i] = perf_sec_max[i] = 0;
-          perf_window = perf_end;
+          for (i = 0; i < PERFSIM_SLOTS; i++)
+            perf_simsec[i] = perf_simsec_max[i] = 0;
+          for (i = 0; i < PERFBOND_SLOTS; i++)
+            perf_bond_us[i] = 0;
+          for (i = 0; i < PERFBOND_TYPES; i++)
+            perf_bond_itcnt[i] = 0;
+          perf_bond_max   = 0;
+          perf_bond_temps = 0;
+          perf_window     = perf_end;
         }
       }
       else
@@ -886,29 +1043,40 @@ void simulation(void)
   for (count = 0; count < numofparticles; count++)
     if (particle[count].levelcollision)
       particlecollision(count);
+  PERF_SIM(PERFSIM_PARTICLES);
 
   for (count = 0; count < numofobjects; count++)
   {
     objectcollision(count);
   }
+  PERF_SIM(PERFSIM_OBJWORLD);
 
   for (count = 0; count < numofobjects; count++)
   {
     objectcollisionobject(count);
   }
+  PERF_SIM(PERFSIM_OBJOBJ);
 
   objectcycle();
   objectanimation();
+  PERF_SIM(PERFSIM_CYCLE);
 
   bondsimulation2();
+  PERF_SIM(PERFSIM_BONDS);
+
   checkbonds();
+  PERF_SIM(PERFSIM_CHECKBONDS);
+
   objecttimetolive();
+  PERF_SIM(PERFSIM_OBJTTL);
 
   spritesimulation();
   spritetimetolive();
+  PERF_SIM(PERFSIM_SPRITES);
 
   bosssimulation();
   bosstimetolive();
+  PERF_SIM(PERFSIM_BOSS);
 
   for (count = 0; count < numofobjects; count++)
   {
@@ -946,6 +1114,15 @@ void simulation(void)
       }
     }
   }
+  PERF_SIM(PERFSIM_DAMAGE);
+
+  /* PERF INSTRUMENTATION (temporary): peak scene size in this window */
+  if (numofobjects > perf_maxobjs)
+    perf_maxobjs = numofobjects;
+  if (numofbonds > perf_maxbonds)
+    perf_maxbonds = numofbonds;
+  if (numofparticles > perf_maxparts)
+    perf_maxparts = numofparticles;
 }
 
 void getinputs(void)

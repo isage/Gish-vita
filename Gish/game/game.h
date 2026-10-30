@@ -93,4 +93,27 @@ extern int disable_frame;
 extern int fix_boss_logic_when_lights_off;
 extern float z_zoom;
 
+/* PERF INSTRUMENTATION (temporary) - sub-timers for bondsimulation2().
+   Plain C types only: this header is included from files that do not
+   include SDL. */
+enum
+{
+  PERFBOND_PRE = 0,  /* forceapplied zeroing + bondnormal/veclength/oomass  */
+  PERFBOND_COPY,     /* the 32x particle prevvelocity copy                  */
+  PERFBOND_GLOBAL,   /* the 32x plain bond[] solver loop                    */
+  PERFBOND_TEMP,     /* the 32x physicstemp[] contact-bond solver loop      */
+  PERFBOND_REST,     /* loop overhead / everything else                     */
+  PERFBOND_CALIB,    /* empty probes: measures the probe cost itself        */
+  PERFBOND_SLOTS
+};
+#define PERFBOND_TYPES 7 /* contact bonds counted per type: 0,1,2,4,5, and -1 */
+
+extern unsigned long long perf_bond_us[PERFBOND_SLOTS];
+extern unsigned long long perf_bond_tick;
+extern int                perf_bond_max;    /* peak physicstemp.numofbonds   */
+extern long long          perf_bond_temps;  /* sum of physicstemp.numofbonds */
+extern long long          perf_bond_itcnt[PERFBOND_TYPES];
+void                      perf_bond_start(void);
+void                      perf_bond_probe(int slot);
+
 #endif /* GISH_GAME_GAME_H */
