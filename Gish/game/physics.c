@@ -695,6 +695,8 @@ void bondsimulation2(void)
   float force[2];
   float temp;
   float scale;
+  float invlen;
+  float blen;
   int   itc[PERFBOND_TYPES];
   int   count3;
 
@@ -718,7 +720,21 @@ void bondsimulation2(void)
     part2 = bond[count2].part2;
     subtractvectors(bond[count2].bondnormal, particle[part2].position, particle[part1].position);
     bond[count2].veclength = vectorlength(bond[count2].bondnormal);
-    normalizevector(bond[count2].bondnormal, bond[count2].bondnormal);
+    /* normalize with the length we just took instead of letting
+       normalizevector() take the same square root a second time */
+    if (bond[count2].veclength != 0.0f)
+    {
+      invlen                    = 1.0f / bond[count2].veclength;
+      bond[count2].bondnormal[0] *= invlen;
+      bond[count2].bondnormal[1] *= invlen;
+      bond[count2].bondnormal[2] *= invlen;
+    }
+    else
+    {
+      bond[count2].bondnormal[0] = 0.0f;
+      bond[count2].bondnormal[1] = 0.0f;
+      bond[count2].bondnormal[2] = 0.0f;
+    }
     bond[count2].oomass = 1.0f / (particle[part1].mass + particle[part2].mass);
   }
   perf_bond_probe(PERFBOND_PRE);
@@ -812,11 +828,13 @@ void bondsimulation2(void)
 
           subtractvectors2(bondnormal, physicstemp.bond[count2].point, particle[part1].position);
           scalevector2(vec, bondnormal, 1.0f);
-          veclength = (vectorlength(bondnormal) - physicstemp.bond[count2].length);
+          /* one square root for all three uses below - the first assignment
+             of veclength was dead, overwritten without ever being read */
+          blen = vectorlength(bondnormal);
           scaleaddvectors2(vec, vec, particle[part1].prevvelocity, -1.0f);
 
-          veclength = (vectorlength(bondnormal) - physicstemp.bond[count2].length)
-                      - dotproduct(bondnormal, particle[part1].prevvelocity) / vectorlength(bondnormal);
+          veclength = (blen - physicstemp.bond[count2].length)
+                      - dotproduct(bondnormal, particle[part1].prevvelocity) / blen;
 
           scalevector2(vec, vec, physicstemp.bond[count2].elasticity);
           scalevector2(vec, vec, 0.04f);
@@ -977,11 +995,12 @@ void bondsimulation2(void)
 
         subtractvectors(bondnormal, physicstemp.bond[count2].point, particle[part1].position);
         scalevector(vec, bondnormal, 1.0f);
-        veclength = (vectorlength(bondnormal) - physicstemp.bond[count2].length);
+        /* one square root for all three uses, as in the solver loop above */
+        blen = vectorlength(bondnormal);
         scaleaddvectors(vec, vec, particle[part1].prevvelocity, -1.0f);
 
-        veclength = (vectorlength(bondnormal) - physicstemp.bond[count2].length)
-                    - dotproduct(bondnormal, particle[part1].prevvelocity) / vectorlength(bondnormal);
+        veclength = (blen - physicstemp.bond[count2].length)
+                    - dotproduct(bondnormal, particle[part1].prevvelocity) / blen;
         if (fabs(veclength) > physicstemp.bond[count2].breakpoint
             || (object[physicstemp.bond[count2].objectnum[0]].button & 1) == 0)
         {

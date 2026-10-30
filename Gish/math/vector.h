@@ -40,7 +40,7 @@ static inline void crossproduct(float result[3], float vec[3], float vec2[3])
 
 static inline float vectorlength(float *vec)
 {
-  return (sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]));
+  return (sqrtf(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]));
 }
 
 static inline void normalizevector(float result[3], float vec[3])

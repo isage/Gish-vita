@@ -87,6 +87,8 @@ void calculatefriction(float *nforce, float *fforce, float *normal, float cofric
 {
   float vec[3];
   float veclength;
+  float invlength;
+  float nlength;
 
   copyvector(vec, nforce);
   scalevector(nforce, normal, dotproduct(vec, normal));
@@ -95,9 +97,16 @@ void calculatefriction(float *nforce, float *fforce, float *normal, float cofric
   veclength = vectorlength(fforce);
   if (veclength > 0.00001f)
   {
-    normalizevector(vec, fforce);
-    if (veclength > cofric * vectorlength(nforce))
-      veclength = cofric * vectorlength(nforce);
+    /* normalize fforce into vec - using the length already computed above
+       instead of letting normalizevector() take the square root again */
+    invlength = 1.0f / veclength;
+    vec[0]    = fforce[0] * invlength;
+    vec[1]    = fforce[1] * invlength;
+    vec[2]    = fforce[2] * invlength;
+    /* and take the length of nforce once, not twice */
+    nlength = cofric * vectorlength(nforce);
+    if (veclength > nlength)
+      veclength = nlength;
     scalevector(fforce, vec, veclength);
   }
   else
