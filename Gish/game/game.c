@@ -865,7 +865,9 @@ void gameloop(void)
         perf_frames++;
         if (frame > perf_frame_max)
           perf_frame_max = frame;
-        if (perf_end - perf_window >= perf_freq)
+        /* One report every 5 s, not every 1 s: a report costs ~14 ms of one
+           frame (stderr -> Cat-A-Log socket writes), i.e. a visible hitch. */
+        if (perf_end - perf_window >= perf_freq * 5)
         {
           double k   = 1000.0 / (double)perf_freq;
           double n   = (double)perf_frames;
