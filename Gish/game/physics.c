@@ -683,11 +683,32 @@ void objectcollisionobject(int objectnum)
       }
 }
 
+/* ---- particle staging for bondsimulation2() -----------------------------
+   The solver sweeps the particles 32 times per step.  _particle is 108 bytes
+   wide, but the solver only reads position, velocity, prevvelocity, mass and
+   type - 44 of those bytes.  Solving straight out of particle[] therefore
+   streams 29 KB per sweep through a 32 KB L1, so every sweep evicts the data
+   the next one needs (and the 32 velocity snapshots move 926 KB per step).
+
+   Copying those five fields into tight arrays once per step makes a sweep
+   11 KB (fits in L1 alongside the bond arrays), and turns the per-sweep
+   snapshot into one memcpy over 3.2 KB instead of a strided walk over 29 KB.
+
+   Values, order of operations and sweep order are untouched, so the result is
+   bit-identical to solving out of particle[] directly.  The arrays mirror
+   particle[16384]; only the first numofparticles entries are ever used. */
+static float bondpack_pos[16384][3];
+static float bondpack_vel[16384][3];
+static float bondpack_prevvel[16384][3];
+static float bondpack_mass[16384];
+static int   bondpack_type[16384];
+
 void bondsimulation2(void)
 {
   int count, count2;
   int part1, part2, part3;
   int blocknum;
+  int npart;
   // unsigned int x;
   float vec[3], vec2[3] /*,vec3[3]*/;
   float bondnormal[3];
@@ -697,6 +718,11 @@ void bondsimulation2(void)
   float scale;
   float invlen;
   float blen;
+  float(*bpos)[3]  = bondpack_pos;
+  float(*bvel)[3]  = bondpack_vel;
+  float(*bprev)[3] = bondpack_prevvel;
+  float *bmass     = bondpack_mass;
+  int   *btype     = bondpack_type;
   int   itc[PERFBOND_TYPES];
   int   count3;
 
@@ -708,6 +734,23 @@ void bondsimulation2(void)
   if (physicstemp.numofbonds > perf_bond_max)
     perf_bond_max = physicstemp.numofbonds;
 
+  /* stage the fields the solver needs */
+  npart = numofparticles;
+  for (count2 = 0; count2 < npart; count2++)
+  {
+    bpos[count2][0]  = particle[count2].position[0];
+    bpos[count2][1]  = particle[count2].position[1];
+    bpos[count2][2]  = particle[count2].position[2];
+    bvel[count2][0]  = particle[count2].velocity[0];
+    bvel[count2][1]  = particle[count2].velocity[1];
+    bvel[count2][2]  = particle[count2].velocity[2];
+    bprev[count2][0] = particle[count2].prevvelocity[0];
+    bprev[count2][1] = particle[count2].prevvelocity[1];
+    bprev[count2][2] = particle[count2].prevvelocity[2];
+    bmass[count2]    = particle[count2].mass;
+    btype[count2]    = particle[count2].type;
+  }
+
   for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
   {
     zerovector(physicstemp.bond[count2].forceapplied[0]);
@@ -718,7 +761,7 @@ void bondsimulation2(void)
   {
     part1 = bond[count2].part1;
     part2 = bond[count2].part2;
-    subtractvectors(bond[count2].bondnormal, particle[part2].position, particle[part1].position);
+    subtractvectors(bond[count2].bondnormal, bpos[part2], bpos[part1]);
     bond[count2].veclength = vectorlength(bond[count2].bondnormal);
     /* normalize with the length we just took instead of letting
        normalizevector() take the same square root a second time */
@@ -735,7 +778,7 @@ void bondsimulation2(void)
       bond[count2].bondnormal[1] = 0.0f;
       bond[count2].bondnormal[2] = 0.0f;
     }
-    bond[count2].oomass = 1.0f / (particle[part1].mass + particle[part2].mass);
+    bond[count2].oomass = 1.0f / (bmass[part1] + bmass[part2]);
   }
   perf_bond_probe(PERFBOND_PRE);
 
@@ -745,8 +788,9 @@ void bondsimulation2(void)
 
   for (count = 0; count < 32; count++)
   {
-    for (count2 = 0; count2 < numofparticles; count2++)
-      copyvector(particle[count2].prevvelocity, particle[count2].velocity);
+    /* snapshot the velocities for this sweep - a straight copy of the staged
+       arrays (3.2 KB) instead of walking particle[] (29 KB) 32 times a step */
+    memcpy(bprev, bvel, (size_t)npart * sizeof(float) * 3);
     perf_bond_probe(PERFBOND_COPY);
 
     for (count2 = 0; count2 < numofbonds; count2++)
@@ -760,8 +804,8 @@ void bondsimulation2(void)
         copyvector(bondnormal, bond[count2].bondnormal);
 
         zerovector(vec);
-        scaleaddvectors2(vec, vec, particle[part2].prevvelocity, 1.0f);
-        scaleaddvectors2(vec, vec, particle[part1].prevvelocity, -1.0f);
+        scaleaddvectors2(vec, vec, bprev[part2], 1.0f);
+        scaleaddvectors2(vec, vec, bprev[part1], -1.0f);
 
         veclength += dotproduct(vec, bondnormal);
 
@@ -777,11 +821,11 @@ void bondsimulation2(void)
 
         veclength *= bond[count2].oomass;
 
-        force[0] = veclength * particle[part2].mass;
-        force[1] = veclength * particle[part1].mass;
+        force[0] = veclength * bmass[part2];
+        force[1] = veclength * bmass[part1];
 
-        scaleaddvectors2(particle[part1].velocity, particle[part1].velocity, bondnormal, force[0]);
-        scaleaddvectors2(particle[part2].velocity, particle[part2].velocity, bondnormal, -force[1]);
+        scaleaddvectors2(bvel[part1], bvel[part1], bondnormal, force[0]);
+        scaleaddvectors2(bvel[part2], bvel[part2], bondnormal, -force[1]);
       }
     perf_bond_probe(PERFBOND_GLOBAL);
 
@@ -796,25 +840,25 @@ void bondsimulation2(void)
         {
           part1 = physicstemp.bond[count2].part1;
 
-          subtractvectors2(bondnormal, physicstemp.bond[count2].point, particle[part1].position);
+          subtractvectors2(bondnormal, physicstemp.bond[count2].point, bpos[part1]);
           scalevector2(vec, bondnormal, 0.2f);
           veclength = (vectorlength(bondnormal) - physicstemp.bond[count2].length);
-          scaleaddvectors2(vec, vec, particle[part1].prevvelocity, -1.0f);
+          scaleaddvectors2(vec, vec, bprev[part1], -1.0f);
 
           if (dotproduct(vec, physicstemp.bond[count2].normal) > 0.0f)
           {
             scalevector2(vec, vec, physicstemp.bond[count2].elasticity);
             calculatefriction(vec, vec2, physicstemp.bond[count2].normal, physicstemp.bond[count2].friction);
             addvectors2(vec, vec, vec2);
-            addvectors2(particle[part1].velocity, particle[part1].velocity, vec);
+            addvectors2(bvel[part1], bvel[part1], vec);
 
-            if (particle[part1].type != 5)
+            if (btype[part1] != 5)
             {
               addvectors2(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].forceapplied[0], vec);
               if (block[physicstemp.bond[count2].blocknum].breakpoint != 0.0f)
               {
                 level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
-                    += vectorlength(vec) * particle[part1].mass;
+                    += vectorlength(vec) * bmass[part1];
                 if (level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
                     > block[physicstemp.bond[count2].blocknum].breakpoint)
                   physicstemp.bond[count2].type = -1;
@@ -826,24 +870,24 @@ void bondsimulation2(void)
         {
           part1 = physicstemp.bond[count2].part1;
 
-          subtractvectors2(bondnormal, physicstemp.bond[count2].point, particle[part1].position);
+          subtractvectors2(bondnormal, physicstemp.bond[count2].point, bpos[part1]);
           scalevector2(vec, bondnormal, 1.0f);
           /* one square root for all three uses below - the first assignment
              of veclength was dead, overwritten without ever being read */
           blen = vectorlength(bondnormal);
-          scaleaddvectors2(vec, vec, particle[part1].prevvelocity, -1.0f);
+          scaleaddvectors2(vec, vec, bprev[part1], -1.0f);
 
           veclength = (blen - physicstemp.bond[count2].length)
-                      - dotproduct(bondnormal, particle[part1].prevvelocity) / blen;
+                      - dotproduct(bondnormal, bprev[part1]) / blen;
 
           scalevector2(vec, vec, physicstemp.bond[count2].elasticity);
           scalevector2(vec, vec, 0.04f);
-          addvectors2(particle[part1].velocity, particle[part1].velocity, vec);
+          addvectors2(bvel[part1], bvel[part1], vec);
           addvectors2(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].forceapplied[0], vec);
           if (block[physicstemp.bond[count2].blocknum].breakpoint != 0.0f)
           {
             level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
-                += vectorlength(vec) * particle[part1].mass;
+                += vectorlength(vec) * bmass[part1];
             if (level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
                     > block[physicstemp.bond[count2].blocknum].breakpoint
                 || level.gridmod[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx] != 0)
@@ -859,8 +903,8 @@ void bondsimulation2(void)
           part2 = physicstemp.bond[count2].part2;
 
           scalevector2(bondnormal, physicstemp.bond[count2].normal, -physicstemp.bond[count2].length * 0.2f);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part2].prevvelocity, -physicstemp.bond[count2].force[1]);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part1].prevvelocity, -physicstemp.bond[count2].force[0]);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part2], -physicstemp.bond[count2].force[1]);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part1], -physicstemp.bond[count2].force[0]);
           copyvector(vec, bondnormal);
 
           if (dotproduct(vec, physicstemp.bond[count2].normal) < 0.0f)
@@ -868,15 +912,15 @@ void bondsimulation2(void)
             scalevector2(vec, vec, physicstemp.bond[count2].elasticity);
             calculatefriction(vec, vec2, physicstemp.bond[count2].normal, physicstemp.bond[count2].friction);
             addvectors2(vec, vec, vec2);
-            scaleaddvectors2(particle[part1].velocity, particle[part1].velocity, vec,
+            scaleaddvectors2(bvel[part1], bvel[part1], vec,
                              physicstemp.bond[count2].force[0]);
-            scaleaddvectors2(particle[part2].velocity, particle[part2].velocity, vec,
+            scaleaddvectors2(bvel[part2], bvel[part2], vec,
                              physicstemp.bond[count2].force[1]);
             addvectors2(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].forceapplied[0], vec);
             if (block[physicstemp.bond[count2].blocknum].breakpoint != 0.0f)
             {
               level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
-                  += vectorlength(vec) * particle[part1].mass;
+                  += vectorlength(vec) * bmass[part1];
               if (level.gridforce[physicstemp.bond[count2].blocky][physicstemp.bond[count2].blockx]
                   > block[physicstemp.bond[count2].blocknum].breakpoint)
                 physicstemp.bond[count2].type = -1;
@@ -891,18 +935,18 @@ void bondsimulation2(void)
 
           scalevector2(bondnormal, physicstemp.bond[count2].normal, -physicstemp.bond[count2].length * 0.2f);
 
-          scaleaddvectors2(bondnormal, bondnormal, particle[part3].prevvelocity, 1.0f);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part2].prevvelocity, -physicstemp.bond[count2].force[1]);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part1].prevvelocity, -physicstemp.bond[count2].force[0]);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part3], 1.0f);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part2], -physicstemp.bond[count2].force[1]);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part1], -physicstemp.bond[count2].force[0]);
 
           veclength = physicstemp.bond[count2].elasticity
-                      / (particle[part1].mass * physicstemp.bond[count2].force[0]
-                         + particle[part2].mass * physicstemp.bond[count2].force[1] + particle[part3].mass);
+                      / (bmass[part1] * physicstemp.bond[count2].force[0]
+                         + bmass[part2] * physicstemp.bond[count2].force[1] + bmass[part3]);
 
-          force[0] = veclength * particle[part3].mass;
+          force[0] = veclength * bmass[part3];
           force[1] = veclength
-                     * (particle[part1].mass * physicstemp.bond[count2].force[0]
-                        + particle[part2].mass * physicstemp.bond[count2].force[1]);
+                     * (bmass[part1] * physicstemp.bond[count2].force[0]
+                        + bmass[part2] * physicstemp.bond[count2].force[1]);
 
           if (dotproduct(bondnormal, physicstemp.bond[count2].normal) * force[0] < 0.0f)
           {
@@ -911,9 +955,9 @@ void bondsimulation2(void)
             calculatefriction(vec, vec2, physicstemp.bond[count2].normal, physicstemp.bond[count2].friction);
             addvectors2(vec, vec, vec2);
 
-            scaleaddvectors2(particle[part1].velocity, particle[part1].velocity, vec,
+            scaleaddvectors2(bvel[part1], bvel[part1], vec,
                              physicstemp.bond[count2].force[0]);
-            scaleaddvectors2(particle[part2].velocity, particle[part2].velocity, vec,
+            scaleaddvectors2(bvel[part2], bvel[part2], vec,
                              physicstemp.bond[count2].force[1]);
             addvectors2(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].forceapplied[0], vec);
 
@@ -922,7 +966,7 @@ void bondsimulation2(void)
             calculatefriction(vec, vec2, physicstemp.bond[count2].normal, physicstemp.bond[count2].friction);
             addvectors2(vec, vec, vec2);
 
-            addvectors2(particle[part3].velocity, particle[part3].velocity, vec);
+            addvectors2(bvel[part3], bvel[part3], vec);
             addvectors2(physicstemp.bond[count2].forceapplied[1], physicstemp.bond[count2].forceapplied[1], vec);
           }
         }
@@ -933,40 +977,53 @@ void bondsimulation2(void)
           part3 = physicstemp.bond[count2].part3;
 
           // scalevector(bondnormal,physicstemp.bond[count2].normal,-physicstemp.bond[count2].length*0.2f);
-          scalevector2(vec, particle[part1].position, physicstemp.bond[count2].force[0]);
-          scaleaddvectors2(vec, vec, particle[part2].position, physicstemp.bond[count2].force[1]);
-          subtractvectors2(bondnormal, particle[part3].position, vec);
+          scalevector2(vec, bpos[part1], physicstemp.bond[count2].force[0]);
+          scaleaddvectors2(vec, vec, bpos[part2], physicstemp.bond[count2].force[1]);
+          subtractvectors2(bondnormal, bpos[part3], vec);
 
-          scaleaddvectors2(bondnormal, bondnormal, particle[part3].prevvelocity, 1.0f);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part2].prevvelocity,
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part3], 1.0f);
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part2],
                            -physicstemp.bond[count2].force[1] * 1.0f);
-          scaleaddvectors2(bondnormal, bondnormal, particle[part1].prevvelocity,
+          scaleaddvectors2(bondnormal, bondnormal, bprev[part1],
                            -physicstemp.bond[count2].force[0] * 1.0f);
 
           veclength = physicstemp.bond[count2].elasticity
-                      / (particle[part1].mass * physicstemp.bond[count2].force[0]
-                         + particle[part2].mass * physicstemp.bond[count2].force[1] + particle[part3].mass);
+                      / (bmass[part1] * physicstemp.bond[count2].force[0]
+                         + bmass[part2] * physicstemp.bond[count2].force[1] + bmass[part3]);
           veclength *= 0.2f;
           veclength *= 0.2f;
 
-          force[0] = veclength * particle[part3].mass;
+          force[0] = veclength * bmass[part3];
           force[1] = veclength
-                     * (particle[part1].mass * physicstemp.bond[count2].force[0]
-                        + particle[part2].mass * physicstemp.bond[count2].force[1]);
+                     * (bmass[part1] * physicstemp.bond[count2].force[0]
+                        + bmass[part2] * physicstemp.bond[count2].force[1]);
 
           scalevector2(vec, bondnormal, force[0]);
 
-          scaleaddvectors2(particle[part1].velocity, particle[part1].velocity, vec, physicstemp.bond[count2].force[0]);
-          scaleaddvectors2(particle[part2].velocity, particle[part2].velocity, vec, physicstemp.bond[count2].force[1]);
+          scaleaddvectors2(bvel[part1], bvel[part1], vec, physicstemp.bond[count2].force[0]);
+          scaleaddvectors2(bvel[part2], bvel[part2], vec, physicstemp.bond[count2].force[1]);
           addvectors2(physicstemp.bond[count2].forceapplied[0], physicstemp.bond[count2].forceapplied[0], vec);
 
           scalevector2(vec, bondnormal, -force[1]);
 
-          addvectors2(particle[part3].velocity, particle[part3].velocity, vec);
+          addvectors2(bvel[part3], bvel[part3], vec);
           addvectors2(physicstemp.bond[count2].forceapplied[1], physicstemp.bond[count2].forceapplied[1], vec);
         }
       }
     perf_bond_probe(PERFBOND_TEMP);
+  }
+
+  /* write the solver result back before the post-pass below: that pass reads
+     particle[] again and may create particles (block breaking), and it must
+     see exactly what the sweeps produced */
+  for (count2 = 0; count2 < npart; count2++)
+  {
+    particle[count2].velocity[0]     = bvel[count2][0];
+    particle[count2].velocity[1]     = bvel[count2][1];
+    particle[count2].velocity[2]     = bvel[count2][2];
+    particle[count2].prevvelocity[0] = bprev[count2][0];
+    particle[count2].prevvelocity[1] = bprev[count2][1];
+    particle[count2].prevvelocity[2] = bprev[count2][2];
   }
   perf_bond_probe(PERFBOND_REST);
 
