@@ -266,6 +266,60 @@ void setupframelighting(void)
   //  frame.numoflights=0;
 }
 
+/* ---------------------------------------------------------------------------
+   Shadow quad batching
+
+   rendershadows() only stamps stencil bits, so the order the extruded quads
+   are drawn in cannot matter - a quad either sets its light's bit or leaves
+   the buffer alone.  Every quad for one light can therefore be accumulated
+   and issued as a single draw, instead of one glDrawArrays per edge (roughly
+   1600 calls per frame, ~10 us each in Sony's GLES driver).  The buffer is
+   flushed when it fills and once per light, before the stencil mask changes.
+   --------------------------------------------------------------------------- */
+
+#define SHADOWBATCH_QUADS 1024
+static float shadowbatch_verts[SHADOWBATCH_QUADS * 18];
+static int   shadowbatch_num;
+
+static void shadowbatch_flush(void)
+{
+  if (shadowbatch_num == 0)
+    return;
+
+#if defined(GLES)
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glVertexPointer(3, GL_FLOAT, 0, shadowbatch_verts);
+  glDrawArrays(GL_TRIANGLES, 0, shadowbatch_num * 6);
+  glDisableClientState(GL_VERTEX_ARRAY);
+#endif
+
+  shadowbatch_num = 0;
+}
+
+/* quad arrives as four (x,y,z) triples in fan order; stored as two triangles */
+static void shadowbatch_add(const float *quad)
+{
+#if defined(GLES)
+  static const int idx[6] = {0, 1, 2, 0, 2, 3};
+  float *p;
+  int i;
+
+  if (shadowbatch_num >= SHADOWBATCH_QUADS)
+    shadowbatch_flush();
+
+  p = shadowbatch_verts + shadowbatch_num * 18;
+  for (i = 0; i < 6; i++)
+  {
+    p[i * 3 + 0] = quad[idx[i] * 3 + 0];
+    p[i * 3 + 1] = quad[idx[i] * 3 + 1];
+    p[i * 3 + 2] = quad[idx[i] * 3 + 2];
+  }
+  shadowbatch_num++;
+#else
+  (void)quad;
+#endif
+}
+
 void rendershadows(void)
 {
   int count, count2, count3;
@@ -373,9 +427,7 @@ void rendershadows(void)
                     glVertex3fv(vec);
 #endif
 #if defined(GLES)
-                    glVertexPointer(3, GL_FLOAT, 0, quad);
-                    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-                    glDisableClientState(GL_VERTEX_ARRAY);
+                    shadowbatch_add(quad);
 #else
                     glEnd();
 #endif
@@ -448,9 +500,7 @@ void rendershadows(void)
               glVertex3fv(vec);
 #endif
 #if defined(GLES)
-              glVertexPointer(3, GL_FLOAT, 0, quad);
-              glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-              glDisableClientState(GL_VERTEX_ARRAY);
+              shadowbatch_add(quad);
 #else
               glEnd();
 #endif
@@ -458,6 +508,8 @@ void rendershadows(void)
           }
         }
       }
+
+    shadowbatch_flush();
   }
 
   glDisable(GL_STENCIL_TEST);
