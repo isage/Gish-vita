@@ -44,6 +44,8 @@ typedef struct
   int fullscreen;
   int keepaspect;
   int turbomode;
+  int lighting;
+  int shadows;
   int sound;
   int music;
   int joystick;

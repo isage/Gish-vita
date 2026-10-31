@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "audio/audio.h"
 #include "config.h"
 #include "game/config.h"
+#include "game/game.h"
 #include "game/high.h"
 #include "game/mainmenu.h"
 #include "game/options.h"
@@ -83,6 +84,10 @@ int main(int argc, char *argv[])
   loadconfig();
   loadscores();
   loadplayers();
+
+  /* lighting and shadow switches come from config.txt (lighting=, shadows=) */
+  lighting_enabled = config.lighting;
+  shadow_enabled   = config.shadows;
 
   flags = SDL_INIT_VIDEO | SDL_INIT_TIMER;
 

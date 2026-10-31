@@ -139,6 +139,8 @@ void loadconfig(void)
   config.music       = 1;
   config.keepaspect  = 1;
   config.turbomode   = 0;
+  config.lighting    = 1;
+  config.shadows     = 0;
 #ifndef ANDROID_NDK
   config.joystick = 1;
 #ifdef __vita__
@@ -217,6 +219,8 @@ void loadconfig(void)
   optionreadint(&config.joystick, "joystick=");
   optionreadint(&config.keepaspect, "keepaspect=");
   optionreadint(&config.turbomode, "turbomode=");
+  optionreadint(&config.lighting, "lighting=");
+  optionreadint(&config.shadows, "shadows=");
 
   optionreadint(&option.sound, "soundon=");
   optionreadint(&option.music, "musicon=");
@@ -290,6 +294,8 @@ void saveconfig(void)
   optionwriteint(fp, &config.joystick, "joystick=");
   optionwriteint(fp, &config.keepaspect, "keepaspect=");
   optionwriteint(fp, &config.turbomode, "turbomode=");
+  optionwriteint(fp, &config.lighting, "lighting=");
+  optionwriteint(fp, &config.shadows, "shadows=");
 
   optionwriteint(fp, &option.sound, "soundon=");
   optionwriteint(fp, &option.music, "musicon=");
