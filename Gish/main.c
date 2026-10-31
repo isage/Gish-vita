@@ -135,6 +135,11 @@ int main(int argc, char *argv[])
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+  /* rendershadows() only stamps stencil bits (one bit per light) and the light
+     passes skip pixels where that bit is set.  SDL defaults to 0 stencil bits,
+     so without this the marks are dropped, every stencil test passes and the
+     shadows are silently invisible.  8 bits = one per light. */
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, config.stencilbits);
 
   globalwindow = SDL_CreateWindow("Gish GLES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowinfo.resolutionx,
                                   windowinfo.resolutiony, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
