@@ -1500,12 +1500,12 @@ void renderobjects(void)
             index_vtxE   = -1;
             index_texE   = -1;
             index_colorE = -1;
-            GLfloat vtxE[objectrender[count].numoftris * 12];
-            GLfloat texE[objectrender[count].numoftris * 8];
-            GLfloat colorE[objectrender[count].numoftris * 16];
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            glEnableClientState(GL_COLOR_ARRAY);
+            /* sized from numofedges, not numoftris: the loop below writes four
+               vertices per edge, so the old numoftris-based sizes overflowed
+               the stack (2 tris = 8 vertices' worth of space, 16 written) */
+            GLfloat vtxE[objectrender[count].numofedges * 12];
+            GLfloat texE[objectrender[count].numofedges * 8];
+            GLfloat colorE[objectrender[count].numofedges * 16];
 #else
             glBegin(GL_QUADS);
 #endif
@@ -1600,13 +1600,70 @@ void renderobjects(void)
 #endif
             }
 #if defined(GLES)
-            glVertexPointer(3, GL_FLOAT, 0, vtxE);
-            glTexCoordPointer(2, GL_FLOAT, 0, texE);
-            glColorPointer(4, GL_FLOAT, 0, colorE);
-            glDrawArrays(GL_TRIANGLE_FAN, 0, objectrender[count].numofedges * 4);
-            glDisableClientState(GL_COLOR_ARRAY);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glDisableClientState(GL_VERTEX_ARRAY);
+            {
+              /* These objects carry four SEPARATE quads, but the old code drew
+                 all of them as one GL_TRIANGLE_FAN - a fan joins vertex 0 to
+                 every later vertex, which threw long diagonal light streaks
+                 across the object and everything behind it.  Expand each quad
+                 to two triangles instead.
+
+                 The light gradient (texture unit 1) also never got texcoords
+                 here: setuplighttexcoord() only sets immediate-mode state,
+                 which GLES ignores, so it is filled in below the same way. */
+              int   edges = objectrender[count].numofedges;
+              int   edge, k;
+              float lscale;
+              const int quadindex[6] = {0, 1, 2, 0, 2, 3};
+              GLfloat vtxT[edges * 18];
+              GLfloat texT[edges * 12];
+              GLfloat lightT[edges * 12];
+              GLfloat colorT[edges * 24];
+
+              if (edges < 1)
+                edges = 1;
+              lscale = (frame.light[lightcount].intensity != 0.0f)
+                           ? 1.0f / frame.light[lightcount].intensity
+                           : 0.0f;
+
+              for (edge = 0; edge < objectrender[count].numofedges; edge++)
+                for (k = 0; k < 6; k++)
+                {
+                  int src = edge * 4 + quadindex[k];
+                  int dst = edge * 6 + k;
+
+                  vtxT[dst * 3 + 0]   = vtxE[src * 3 + 0];
+                  vtxT[dst * 3 + 1]   = vtxE[src * 3 + 1];
+                  vtxT[dst * 3 + 2]   = vtxE[src * 3 + 2];
+                  texT[dst * 2 + 0]   = texE[src * 2 + 0];
+                  texT[dst * 2 + 1]   = texE[src * 2 + 1];
+                  colorT[dst * 4 + 0] = colorE[src * 4 + 0];
+                  colorT[dst * 4 + 1] = colorE[src * 4 + 1];
+                  colorT[dst * 4 + 2] = colorE[src * 4 + 2];
+                  colorT[dst * 4 + 3] = colorE[src * 4 + 3];
+                  lightT[dst * 2 + 0]
+                      = (vtxE[src * 3 + 0] - frame.light[lightcount].position[0]) * lscale + 0.5f;
+                  lightT[dst * 2 + 1]
+                      = (vtxE[src * 3 + 1] - frame.light[lightcount].position[1]) * lscale + 0.5f;
+                }
+
+              glClientActiveTexture(GL_TEXTURE1);
+              glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+              glTexCoordPointer(2, GL_FLOAT, 0, lightT);
+              glClientActiveTexture(GL_TEXTURE0);
+              glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+              glTexCoordPointer(2, GL_FLOAT, 0, texT);
+              glEnableClientState(GL_COLOR_ARRAY);
+              glColorPointer(4, GL_FLOAT, 0, colorT);
+              glEnableClientState(GL_VERTEX_ARRAY);
+              glVertexPointer(3, GL_FLOAT, 0, vtxT);
+              glDrawArrays(GL_TRIANGLES, 0, objectrender[count].numofedges * 6);
+              glDisableClientState(GL_COLOR_ARRAY);
+              glDisableClientState(GL_VERTEX_ARRAY);
+              glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 0 */
+              glClientActiveTexture(GL_TEXTURE1);
+              glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 1 */
+              glClientActiveTexture(GL_TEXTURE0);
+            }
 #else
             glEnd();
 #endif
