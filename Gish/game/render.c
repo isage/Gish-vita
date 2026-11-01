@@ -1670,6 +1670,16 @@ void renderobjects(void)
       for (lightcount = 0; lightcount < frame.numoflights; lightcount++)
         if (((objectrender[count].lightflags >> lightcount) & 1) == 1)
         {
+          /* With lighting switched off, setupframelighting_fix_cave6_boss()
+             only counts lights so the boss stays killable - position, colour
+             and intensity are left at zero.  Zero intensity has no falloff
+             radius, so the light gradient collapses onto its brightest texel
+             and each of up to eight additive passes washes out the translucent
+             boss.  A light with no intensity lights nothing: skip its pass
+             instead of drawing it black. */
+          if (!lighting_enabled || frame.light[lightcount].intensity == 0.0f)
+            continue;
+
           glStencilMask((1 << lightcount));
           glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
           glStencilFunc(GL_NOTEQUAL, (1 << lightcount), (1 << lightcount));
