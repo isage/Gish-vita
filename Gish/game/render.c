@@ -1209,6 +1209,14 @@ void renderobjects(void)
   float color[4];
   float size;
 
+#if defined(GLES)
+  /* the light gradient texture is the same for every object and every light:
+     bind it once here instead of once per object per light */
+  glActiveTextureARB(GL_TEXTURE1_ARB);
+  glBindTexture(GL_TEXTURE_2D, texture[332].glname);
+  glActiveTextureARB(GL_TEXTURE0_ARB);
+#endif
+
   for (count = 0; count < numofobjectrenders; count++)
   {
     if (objectrender[count].type == 1)
@@ -1601,6 +1609,64 @@ void renderobjects(void)
       glBlendFunc(GL_SRC_ALPHA, GL_ONE);
       glEnable(GL_STENCIL_TEST);
 
+      /* Unit 1 carries the light gradient: one texture for every light, bound
+         once per frame in renderobjects(), so it only has to be enabled once
+         here instead of once per light. */
+      glActiveTextureARB(GL_TEXTURE1_ARB);
+      glEnable(GL_TEXTURE_2D);
+      glActiveTextureARB(GL_TEXTURE0_ARB);
+
+      /* chunks (type 2/10) keep their edge-quad path, everything else uses the
+         triangle body path */
+      int bodyD = (objectrender[count].type != 2 && objectrender[count].type != 10);
+
+#if defined(GLES)
+      /* Body geometry and its unit 0 texcoords do not depend on which light is
+         being applied, so build them once per object instead of once per light.
+         Only the unit 1 gradient changes per light - and object bodies never
+         had one at all: it used to be left to setuplighttexcoord(), which only
+         writes immediate-mode state and is ignored on GLES. */
+      int trisD = objectrender[count].numoftris;
+      int v;
+
+      if (trisD < 1)
+        trisD = 1;
+      GLfloat vtxD[trisD * 9];
+      GLfloat texD[trisD * 6];
+      GLfloat lightD[trisD * 6];
+
+      if (bodyD)
+      {
+        index_vtxD = -1;
+        index_texD = -1;
+        for (count2 = 0; count2 < objectrender[count].numoftris; count2++)
+          for (v = 0; v < 3; v++)
+          {
+            int vi = objectrender[count].tri[count2][v];
+
+            texD[++index_texD] = objectrender[count].texcoord[vi][0];
+            texD[++index_texD] = objectrender[count].texcoord[vi][1];
+            vtxD[++index_vtxD] = objectrender[count].vertex[vi][0];
+            vtxD[++index_vtxD] = objectrender[count].vertex[vi][1];
+            vtxD[++index_vtxD] = objectrender[count].vertex[vi][2];
+          }
+      }
+#endif
+
+#if defined(GLES)
+      /* The client arrays are enabled once per object and only re-pointed per
+         light: an enable/disable pair costs eight driver calls per light, and a
+         busy scene (80 debris objects, 2 lights) issues ~160 light draws.  The
+         colour array is only used by the edge path. */
+      glEnableClientState(GL_VERTEX_ARRAY);
+      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+      glClientActiveTexture(GL_TEXTURE1);
+      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+      glClientActiveTexture(GL_TEXTURE0);
+      if (!bodyD)
+        glEnableClientState(GL_COLOR_ARRAY);
+#endif
+
       for (lightcount = 0; lightcount < frame.numoflights; lightcount++)
         if (((objectrender[count].lightflags >> lightcount) & 1) == 1)
         {
@@ -1608,98 +1674,49 @@ void renderobjects(void)
           glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
           glStencilFunc(GL_NOTEQUAL, (1 << lightcount), (1 << lightcount));
 
-          glActiveTextureARB(GL_TEXTURE1_ARB);
-          glEnable(GL_TEXTURE_2D);
-          glBindTexture(GL_TEXTURE_2D, texture[332].glname);
-
-          if (objectrender[count].type != 2 && objectrender[count].type != 10)
+          if (bodyD)
           {
 #if defined(GLES)
-            index_vtxD   = -1;
-            index_texD   = -1;
-            index_lightD = -1;
-            /* The light gradient (texture unit 1) used to be set through
-               setuplighttexcoord(), which only writes immediate-mode state and
-               is therefore ignored on GLES - object bodies never got the
-               radial falloff the PC version has.  Fill the array here, the
-               same way the edge path does. */
-            GLfloat vtxD[objectrender[count].numoftris * 9];
-            GLfloat texD[objectrender[count].numoftris * 6];
-            GLfloat lightD[objectrender[count].numoftris * 6];
-            float   lscaleD = (frame.light[lightcount].intensity != 0.0f)
-                                  ? 1.0f / frame.light[lightcount].intensity
-                                  : 0.0f;
-            glEnableClientState(GL_VERTEX_ARRAY);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-#else
-            glBegin(GL_TRIANGLES);
-#endif
-            glColor4f(level.ambient[1][0], level.ambient[1][1], level.ambient[1][2], objectrender[count].alpha);
+            float lscaleD = (frame.light[lightcount].intensity != 0.0f)
+                                ? 1.0f / frame.light[lightcount].intensity
+                                : 0.0f;
 
-            for (count2 = 0; count2 < objectrender[count].numoftris; count2++)
+            index_lightD = -1;
+            for (v = 0; v <= index_vtxD; v += 3)
             {
-              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][0]]);
-#if defined(GLES)
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][0]][0];
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][0]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][0]][0];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][0]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][0]][2];
               lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 2] - frame.light[lightcount].position[0]) * lscaleD + 0.5f;
+                  = (vtxD[v + 0] - frame.light[lightcount].position[0]) * lscaleD + 0.5f;
               lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 1] - frame.light[lightcount].position[1]) * lscaleD + 0.5f;
-#else
-              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][0]]);
-              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][0]]);
-#endif
-              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][1]]);
-#if defined(GLES)
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][1]][0];
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][1]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][1]][0];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][1]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][1]][2];
-              lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 2] - frame.light[lightcount].position[0]) * lscaleD + 0.5f;
-              lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 1] - frame.light[lightcount].position[1]) * lscaleD + 0.5f;
-#else
-              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][1]]);
-              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][1]]);
-#endif
-              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][2]]);
-#if defined(GLES)
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][2]][0];
-              texD[++index_texD] = objectrender[count].texcoord[objectrender[count].tri[count2][2]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][2]][0];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][2]][1];
-              vtxD[++index_vtxD] = objectrender[count].vertex[objectrender[count].tri[count2][2]][2];
-              lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 2] - frame.light[lightcount].position[0]) * lscaleD + 0.5f;
-              lightD[++index_lightD]
-                  = (vtxD[index_vtxD - 1] - frame.light[lightcount].position[1]) * lscaleD + 0.5f;
-#else
-              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][2]]);
-              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][2]]);
-              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][2]]);
-#endif
+                  = (vtxD[v + 1] - frame.light[lightcount].position[1]) * lscaleD + 0.5f;
             }
 
-#if defined(GLES)
+            glColor4f(level.ambient[1][0], level.ambient[1][1], level.ambient[1][2], objectrender[count].alpha);
+
             glClientActiveTexture(GL_TEXTURE1);
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
             glTexCoordPointer(2, GL_FLOAT, 0, lightD);
             glClientActiveTexture(GL_TEXTURE0);
             glVertexPointer(3, GL_FLOAT, 0, vtxD);
             glTexCoordPointer(2, GL_FLOAT, 0, texD);
             glDrawArrays(GL_TRIANGLES, 0, objectrender[count].numoftris * 3);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 0 */
-            glClientActiveTexture(GL_TEXTURE1);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 1 */
-            glClientActiveTexture(GL_TEXTURE0);
-            glDisableClientState(GL_VERTEX_ARRAY);
 #else
+            glBegin(GL_TRIANGLES);
+            glColor4f(level.ambient[1][0], level.ambient[1][1], level.ambient[1][2], objectrender[count].alpha);
+
+            for (count2 = 0; count2 < objectrender[count].numoftris; count2++)
+            {
+              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][0]]);
+              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][0]]);
+              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][0]]);
+
+              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][1]]);
+              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][1]]);
+              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][1]]);
+
+              glTexCoord2fv(objectrender[count].texcoord[objectrender[count].tri[count2][2]]);
+              setuplighttexcoord(lightcount, objectrender[count].vertex[objectrender[count].tri[count2][2]]);
+              glVertex3fv(objectrender[count].vertex[objectrender[count].tri[count2][2]]);
+            }
+
             glEnd();
 #endif
           }
@@ -1856,31 +1873,35 @@ void renderobjects(void)
                 }
 
               glClientActiveTexture(GL_TEXTURE1);
-              glEnableClientState(GL_TEXTURE_COORD_ARRAY);
               glTexCoordPointer(2, GL_FLOAT, 0, lightT);
               glClientActiveTexture(GL_TEXTURE0);
-              glEnableClientState(GL_TEXTURE_COORD_ARRAY);
               glTexCoordPointer(2, GL_FLOAT, 0, texT);
-              glEnableClientState(GL_COLOR_ARRAY);
               glColorPointer(4, GL_FLOAT, 0, colorT);
-              glEnableClientState(GL_VERTEX_ARRAY);
               glVertexPointer(3, GL_FLOAT, 0, vtxT);
               glDrawArrays(GL_TRIANGLES, 0, objectrender[count].numofedges * 6);
-              glDisableClientState(GL_COLOR_ARRAY);
-              glDisableClientState(GL_VERTEX_ARRAY);
-              glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 0 */
-              glClientActiveTexture(GL_TEXTURE1);
-              glDisableClientState(GL_TEXTURE_COORD_ARRAY); /* unit 1 */
-              glClientActiveTexture(GL_TEXTURE0);
             }
 #else
             glEnd();
 #endif
           }
 
-          glDisable(GL_TEXTURE_2D);
-          glActiveTextureARB(GL_TEXTURE0_ARB);
         }
+
+#if defined(GLES)
+      /* client arrays back off for the passes that follow */
+      glDisableClientState(GL_VERTEX_ARRAY);
+      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+      glClientActiveTexture(GL_TEXTURE1);
+      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+      glClientActiveTexture(GL_TEXTURE0);
+      if (!bodyD)
+        glDisableClientState(GL_COLOR_ARRAY);
+#endif
+
+      /* unit 1 off again for the normally blended passes that follow */
+      glActiveTextureARB(GL_TEXTURE1_ARB);
+      glDisable(GL_TEXTURE_2D);
+      glActiveTextureARB(GL_TEXTURE0_ARB);
 
       glDisable(GL_STENCIL_TEST);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
