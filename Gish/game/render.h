@@ -46,4 +46,9 @@ typedef struct
 
 extern _frame frame;
 
+/* PERF INSTRUMENTATION (temporary): level pass counters, see render.c */
+extern int perf_leveltiles;
+extern int perf_leveldraws;
+extern int perf_levelflush;
+
 #endif /* GISH_GAME_RENDER_H */

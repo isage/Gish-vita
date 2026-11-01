@@ -221,15 +221,17 @@ void gameloop(void)
   /* PERF INSTRUMENTATION (temporary) */
   static Uint64 perf_freq = 0, perf_prev = 0, perf_window = 0;
   static Uint64 perf_render = 0, perf_sim = 0, perf_sim_max = 0, perf_frame_max = 0;
-  static Uint64 perf_sec[11], perf_sec_max[11], perf_tick = 0;
+  static Uint64 perf_sec[12], perf_sec_max[12], perf_tick = 0;
   static int perf_frames = 0, perf_steps = 0, perf_catchup = 0;
+  static int perf_maxleveltiles, perf_maxleveldraws, perf_maxlevelflush;
+  static int perf_maxrenders, perf_maxlights;
   static Uint32 perf_tick0 = 0;
   if (perf_freq == 0)
   {
     perf_freq  = SDL_GetPerformanceFrequency();
     perf_tick0 = SDL_GetTicks();
   }
-/* slots: 0=clear/bg 1=light 2=setupobj 3=shadow 4=lvlbak 5=part 6=obj 7=part2 8=lvl 9=lvlfore 10=rest */
+/* slots: 0=clear/bg 1=light 2=setupobj 3=shadow 4=lvlbak 5=part 6=obj 7=part2 8=lvl 9=lvlfore 10=rest 11=pixelation */
 #define PERF_SEC(i)                                                                                                    \
   do                                                                                                                   \
   {                                                                                                                    \
@@ -246,6 +248,11 @@ void gameloop(void)
     frametimer = SDL_GetTicks();
     perf_now   = SDL_GetPerformanceCounter();
     perf_tick  = perf_now;
+
+    /* level pass counters are filled by render.c during this frame */
+    perf_leveltiles = 0;
+    perf_leveldraws = 0;
+    perf_levelflush = 0;
 
     /* Music streaming: exactly one call per frame, at the top of the frame,
        so a decode slice never lands inside the sim or the draw loop. */
@@ -631,6 +638,9 @@ void gameloop(void)
       glEnd();
 #endif
     }
+    /* the retro levels render into a 256x256 / 128x128 texture and blit it
+       back fullscreen: its own section, it used to disappear inside "rest" */
+    PERF_SEC(11);
 
     setuptextdisplay();
 
@@ -858,13 +868,24 @@ void gameloop(void)
     if ((SDL_GetTicks() - frametimer) != 0)
       fps = 1000 / (SDL_GetTicks() - frametimer);
     {
-      Uint64 perf_end = SDL_GetPerformanceCounter();
-      Uint64 frame    = perf_end - perf_now;
+      Uint64 perf_end  = SDL_GetPerformanceCounter();
+      Uint64 frameus   = perf_end - perf_now; /* "frame" is the global light/scene struct */
       if (perf_prev != 0)
       {
         perf_frames++;
-        if (frame > perf_frame_max)
-          perf_frame_max = frame;
+        if (frameus > perf_frame_max)
+          perf_frame_max = frameus;
+        /* PERF INSTRUMENTATION (temporary): peak scene/draw numbers */
+        if (perf_leveltiles > perf_maxleveltiles)
+          perf_maxleveltiles = perf_leveltiles;
+        if (perf_leveldraws > perf_maxleveldraws)
+          perf_maxleveldraws = perf_leveldraws;
+        if (perf_levelflush > perf_maxlevelflush)
+          perf_maxlevelflush = perf_levelflush;
+        if (numofobjectrenders > perf_maxrenders)
+          perf_maxrenders = numofobjectrenders;
+        if (frame.numoflights > perf_maxlights)
+          perf_maxlights = frame.numoflights;
         /* One report every 5 s, not every 1 s: a report costs ~14 ms of one
            frame (stderr -> Cat-A-Log socket writes), i.e. a visible hitch. */
         if (perf_end - perf_window >= perf_freq * 5)
@@ -874,7 +895,7 @@ void gameloop(void)
           double avg = k * (double)(perf_end - perf_window) / n;
           double r   = k * (double)perf_render / n;
           double s   = k * (double)perf_sim / n;
-          double v[11];
+          double v[12];
           int i;
           int nsteps = perf_steps > 0 ? perf_steps : 1;
           double sv[PERFSIM_SLOTS], wv[PERFSIM_SLOTS], stot = 0.0;
@@ -883,7 +904,7 @@ void gameloop(void)
           Uint64        perf_rep0;
           Uint32        perf_tickms;
           double        perf_winms = k * (double)(perf_end - perf_window);
-          for (i = 0; i < 11; i++)
+          for (i = 0; i < 12; i++)
             v[i] = k * (double)perf_sec[i] / n;
           for (i = 0; i < PERFSIM_SLOTS; i++)
           {
@@ -898,13 +919,13 @@ void gameloop(void)
           PERF_EMIT("PERF %d fps | frame %.2f (max %.2f) | render %.2f | sim %.2f (max %.2f) | wait %.2f | steps %d catchup %d\n",
                     perf_frames, avg, k * (double)perf_frame_max, r, s,
                     k * (double)perf_sim_max, avg - r - s, perf_steps, perf_catchup);
-          PERF_EMIT("PERF2 bg %.2f light %.2f setup %.2f shad %.2f | lvlb %.2f part %.2f obj %.2f part2 %.2f | lvl %.2f lvlf %.2f rest %.2f\n",
-                    v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10]);
-          PERF_EMIT("PERF3 worst-ms bg %.2f setup %.2f lvlb %.2f obj %.2f lvl %.2f lvlf %.2f rest %.2f\n",
+          PERF_EMIT("PERF2 bg %.2f light %.2f setup %.2f shad %.2f | lvlb %.2f part %.2f obj %.2f part2 %.2f | lvl %.2f lvlf %.2f pix %.2f rest %.2f\n",
+                    v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[11], v[10]);
+          PERF_EMIT("PERF3 worst-ms bg %.2f setup %.2f lvlb %.2f obj %.2f lvl %.2f lvlf %.2f pix %.2f rest %.2f\n",
                     k * (double)perf_sec_max[0], k * (double)perf_sec_max[2],
                     k * (double)perf_sec_max[4], k * (double)perf_sec_max[6],
                     k * (double)perf_sec_max[8], k * (double)perf_sec_max[9],
-                    k * (double)perf_sec_max[10]);
+                    k * (double)perf_sec_max[11], k * (double)perf_sec_max[10]);
           PERF_EMIT("SIM2 ms/step objworld %.2f objobj %.2f bonds %.2f parts %.2f | cycle %.2f check %.2f ttl %.2f | sprite %.2f boss %.2f dmg %.2f | logic %.2f | sum %.2f\n",
                     sv[PERFSIM_OBJWORLD], sv[PERFSIM_OBJOBJ], sv[PERFSIM_BONDS], sv[PERFSIM_PARTICLES],
                     sv[PERFSIM_CYCLE], sv[PERFSIM_CHECKBONDS], sv[PERFSIM_OBJTTL],
@@ -934,8 +955,11 @@ void gameloop(void)
              loop runs on the former, every ms figure below on the latter. */
           perf_tickms = SDL_GetTicks() - perf_tick0;
           perf_tick0  = SDL_GetTicks();
-          PERF_EMIT("SCENE max objs %d bonds %d parts %d | report %.2f (max %.2f) | ticks %u/%.0f\n",
+          PERF_EMIT("SCENE max objs %d bonds %d parts %d | tiles %d draws %d flush %d | renders %d lights %d | level %d zoom %.1f old %d | report %.2f (max %.2f) | ticks %u/%.0f\n",
                     perf_maxobjs, perf_maxbonds, perf_maxparts,
+                    perf_maxleveltiles, perf_maxleveldraws, perf_maxlevelflush,
+                    perf_maxrenders, perf_maxlights,
+                    game.levelnum, (double)view.zoom, game.oldschool,
                     k * (double)perf_rep_prev, k * (double)perf_rep_max,
                     (unsigned)perf_tickms, perf_winms);
           perfreport(perf_linebuf);
@@ -945,7 +969,9 @@ void gameloop(void)
           perf_frames = perf_steps = perf_catchup = 0;
           perf_render = perf_sim = perf_sim_max = perf_frame_max = 0;
           perf_maxobjs = perf_maxbonds = perf_maxparts = 0;
-          for (i = 0; i < 11; i++)
+          perf_maxleveltiles = perf_maxleveldraws = perf_maxlevelflush = 0;
+          perf_maxrenders = perf_maxlights = 0;
+          for (i = 0; i < 12; i++)
             perf_sec[i] = perf_sec_max[i] = 0;
           for (i = 0; i < PERFSIM_SLOTS; i++)
             perf_simsec[i] = perf_simsec_max[i] = 0;

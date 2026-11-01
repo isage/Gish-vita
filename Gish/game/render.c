@@ -64,6 +64,16 @@ _frame frame;
 #define LEVELBATCH_MAX 1024    /* ~840 visible cells at the largest zoom */
 #define LEVELBATCH_BLOCKS 1024 /* block[] bound, block number == texture index */
 
+/* PERF INSTRUMENTATION (temporary): what the level passes actually submit.
+   tiles  - every level quad added in the frame, across all passes (ambient,
+            back layer and one pass per light), i.e. the raw tile count;
+   draws  - one per texture used, i.e. the glBindTexture+glDrawArrays pairs
+            the batching actually issues.  A level made of many distinct
+            destructible blocks shows up as draws ~= tiles. */
+int perf_leveltiles;
+int perf_leveldraws;
+int perf_levelflush; /* batch buffer overflows (LEVELBATCH_MAX reached) */
+
 static int   levelbatch_block[LEVELBATCH_MAX];
 static float levelbatch_x[LEVELBATCH_MAX];
 static float levelbatch_y[LEVELBATCH_MAX];
@@ -121,6 +131,7 @@ static void levelbatch_flush(void)
       continue;
 
     glBindTexture(GL_TEXTURE_2D, texture[blocknum].glname);
+    perf_leveldraws++;
 
 #if defined(GLES)
     /* same vertices, same texcoords and same winding as the old
@@ -179,8 +190,13 @@ static void levelbatch_add(int blocknum, int x, int y)
   if (blocknum <= 0 || blocknum >= LEVELBATCH_BLOCKS)
     return;
 
+  perf_leveltiles++;
+
   if (levelbatch_num >= LEVELBATCH_MAX)
+  {
+    perf_levelflush++;
     levelbatch_flush();
+  }
 
   levelbatch_block[levelbatch_num] = blocknum;
   levelbatch_x[levelbatch_num]     = (float)x;
