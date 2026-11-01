@@ -140,7 +140,7 @@ void loadconfig(void)
   config.keepaspect  = 1;
   config.turbomode   = 0;
   config.lighting    = 1;
-  config.shadows     = 0;
+  config.shadows     = 1;
 #ifndef ANDROID_NDK
   config.joystick = 1;
 #ifdef __vita__
