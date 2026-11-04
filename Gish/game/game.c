@@ -79,8 +79,13 @@ int fix_boss_logic_when_lights_off = 0;
 
 int fps, fps_cache = 0, fps_renew = 0, fps_mean;
 
+#if defined(GISH_INSTRUMENT)
 /* ---------------------------------------------------------------------------
-   PERF INSTRUMENTATION (temporary) - simulation breakdown
+   PERF INSTRUMENTATION - simulation breakdown
+
+   Compiled only when configured with -DGISH_INSTRUMENT=ON (see CMakeLists.txt).
+   A release build contains none of this: no timers, no counters, no report
+   strings.
 
    The render side is ticked inside gameloop(); the sim side is ticked inside
    simulation(), so these counters have to live at file scope.  Each slot is
@@ -167,6 +172,16 @@ static void perfreport(const char *text) { TO_DEBUG_LOG("%s", text); }
     }                                                                                                                  \
   } while (0)
 
+#else /* !GISH_INSTRUMENT */
+
+/* Release build: every instrumentation call site stays in the source but
+   compiles to nothing, so physics.c/render.c need no #ifdefs of their own. */
+#define PERF_SIM(i)    do { } while (0)
+#define PERF_SEC(i)    do { } while (0)
+#define PERF_EMIT(...) do { } while (0)
+
+#endif /* GISH_INSTRUMENT */
+
 void gameloop(void)
 {
   int count, count2;
@@ -236,7 +251,8 @@ void gameloop(void)
   if (level.gametype == GAMETYPE_4FOOTBALL || level.gametype == GAMETYPE_4SUMO)
     view.zoom = 14.0f;
 
-  /* PERF INSTRUMENTATION (temporary) */
+#if defined(GISH_INSTRUMENT)
+  /* PERF INSTRUMENTATION */
   static Uint64 perf_freq = 0, perf_prev = 0, perf_window = 0;
   static Uint64 perf_render = 0, perf_sim = 0, perf_sim_max = 0, perf_frame_max = 0;
   static Uint64 perf_sec[12], perf_sec_max[12], perf_tick = 0;
@@ -259,11 +275,15 @@ void gameloop(void)
       perf_sec_max[i] = _pd;                                                                                           \
     perf_tick = _pn;                                                                                                   \
   } while (0)
+#endif
 
   while ((game.exit < GAMEEXIT_EXITGAME || game.exitdelay > 0) && !windowinfo.shutdown)
   {
+#if defined(GISH_INSTRUMENT)
     Uint64 perf_now, perf_t_sim0, perf_t_sim1;
+#endif
     frametimer = SDL_GetTicks();
+#if defined(GISH_INSTRUMENT)
     perf_now   = SDL_GetPerformanceCounter();
     perf_tick  = perf_now;
 
@@ -271,6 +291,7 @@ void gameloop(void)
     perf_leveltiles = 0;
     perf_leveldraws = 0;
     perf_levelflush = 0;
+#endif
 
     /* Music streaming: exactly one call per frame, at the top of the frame,
        so a decode slice never lands inside the sim or the draw loop. */
@@ -812,7 +833,9 @@ void gameloop(void)
       drawmousecursor(768 + font.cursornum, mouse.x, mouse.y, 16, 1.0f, 1.0f, 1.0f, 1.0f);
 
     PERF_SEC(10);
-    perf_t_sim0   = SDL_GetPerformanceCounter();
+#if defined(GISH_INSTRUMENT)
+    perf_t_sim0 = SDL_GetPerformanceCounter();
+#endif
     simcount      = 0;
     game.simspeed = 20;
     if (game.turbomode)
@@ -845,13 +868,16 @@ void gameloop(void)
         else
           loadinputs();
 
+#if defined(GISH_INSTRUMENT)
         perf_simtick = SDL_GetPerformanceCounter();
+#endif
         if (game.startdelay == 0)
           simulation();
         gamelogic();
         PERF_SIM(PERFSIM_LOGIC);
       }
     }
+#if defined(GISH_INSTRUMENT)
     perf_t_sim1 = SDL_GetPerformanceCounter();
     {
       Uint64 dt = perf_t_sim1 - perf_t_sim0;
@@ -863,6 +889,7 @@ void gameloop(void)
       if (simcount >= 3)
         perf_catchup++;
     }
+#endif
 
     if (game.levelnum == 0 && game.editing)
       if (keyboard[SCAN_F1] && !prevkeyboard[SCAN_F1])
@@ -904,6 +931,7 @@ void gameloop(void)
 
     if ((SDL_GetTicks() - frametimer) != 0)
       fps = 1000 / (SDL_GetTicks() - frametimer);
+#if defined(GISH_INSTRUMENT)
     {
       Uint64 perf_end  = SDL_GetPerformanceCounter();
       Uint64 frameus   = perf_end - perf_now; /* "frame" is the global light/scene struct */
@@ -1027,6 +1055,7 @@ void gameloop(void)
       }
       perf_prev = perf_end;
     }
+#endif /* GISH_INSTRUMENT */
   }
 
   game.songnum = -1;
@@ -1181,13 +1210,15 @@ void simulation(void)
   }
   PERF_SIM(PERFSIM_DAMAGE);
 
-  /* PERF INSTRUMENTATION (temporary): peak scene size in this window */
+#if defined(GISH_INSTRUMENT)
+  /* peak scene size in this window */
   if (numofobjects > perf_maxobjs)
     perf_maxobjs = numofobjects;
   if (numofbonds > perf_maxbonds)
     perf_maxbonds = numofbonds;
   if (numofparticles > perf_maxparts)
     perf_maxparts = numofparticles;
+#endif
 }
 
 void getinputs(void)

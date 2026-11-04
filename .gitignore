@@ -1,6 +1,11 @@
 build
 build-release
+build-instr
 *.suprx
 *.bin
 build.log
 scratch/*
+# PVR_PSP2 driver headers (EGL/GLES/KHR). Not part of this project: they come
+# from the PVR_PSP2 package, so they are not distributed with the source.
+# A fresh clone needs them copied into pvr/ before it will build.
+pvr/

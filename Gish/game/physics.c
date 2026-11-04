@@ -723,6 +723,7 @@ void bondsimulation2(void)
   float(*bprev)[3] = bondpack_prevvel;
   float *bmass     = bondpack_mass;
   int   *btype     = bondpack_type;
+#if defined(GISH_INSTRUMENT)
   int   itc[PERFBOND_TYPES];
   int   count3;
 
@@ -733,6 +734,7 @@ void bondsimulation2(void)
   perf_bond_temps += physicstemp.numofbonds;
   if (physicstemp.numofbonds > perf_bond_max)
     perf_bond_max = physicstemp.numofbonds;
+#endif
 
   /* stage the fields the solver needs */
   npart = numofparticles;
@@ -782,9 +784,11 @@ void bondsimulation2(void)
   }
   perf_bond_probe(PERFBOND_PRE);
 
+#if defined(GISH_INSTRUMENT)
   /* probe cost self-check: 128 empty probes, charged to PERFBOND_CALIB */
   for (count3 = 0; count3 < 128; count3++)
     perf_bond_probe(PERFBOND_CALIB);
+#endif
 
   for (count = 0; count < 32; count++)
   {
@@ -832,10 +836,12 @@ void bondsimulation2(void)
     for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
       if ((count & physicstemp.bond[count2].cycles) == 0)
       {
+#if defined(GISH_INSTRUMENT)
         {
           int bt = physicstemp.bond[count2].type;
           itc[(bt >= 0 && bt < 6) ? bt : 6]++;
         }
+#endif
         if (physicstemp.bond[count2].type == 0)
         {
           part1 = physicstemp.bond[count2].part1;
@@ -1027,8 +1033,10 @@ void bondsimulation2(void)
   }
   perf_bond_probe(PERFBOND_REST);
 
+#if defined(GISH_INSTRUMENT)
   for (count3 = 0; count3 < PERFBOND_TYPES; count3++)
     perf_bond_itcnt[count3] += itc[count3];
+#endif
 
   for (count2 = 0; count2 < physicstemp.numofbonds; count2++)
   {

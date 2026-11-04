@@ -69,10 +69,13 @@ _frame frame;
             back layer and one pass per light), i.e. the raw tile count;
    draws  - one per texture used, i.e. the glBindTexture+glDrawArrays pairs
             the batching actually issues.  A level made of many distinct
-            destructible blocks shows up as draws ~= tiles. */
+            destructible blocks shows up as draws ~= tiles.
+   Only compiled with -DGISH_INSTRUMENT=ON; the release build counts nothing. */
+#if defined(GISH_INSTRUMENT)
 int perf_leveltiles;
 int perf_leveldraws;
 int perf_levelflush; /* batch buffer overflows (LEVELBATCH_MAX reached) */
+#endif
 
 static int   levelbatch_block[LEVELBATCH_MAX];
 static float levelbatch_x[LEVELBATCH_MAX];
@@ -131,7 +134,9 @@ static void levelbatch_flush(void)
       continue;
 
     glBindTexture(GL_TEXTURE_2D, texture[blocknum].glname);
+#if defined(GISH_INSTRUMENT)
     perf_leveldraws++;
+#endif
 
 #if defined(GLES)
     /* same vertices, same texcoords and same winding as the old
@@ -190,11 +195,15 @@ static void levelbatch_add(int blocknum, int x, int y)
   if (blocknum <= 0 || blocknum >= LEVELBATCH_BLOCKS)
     return;
 
+#if defined(GISH_INSTRUMENT)
   perf_leveltiles++;
+#endif
 
   if (levelbatch_num >= LEVELBATCH_MAX)
   {
+#if defined(GISH_INSTRUMENT)
     perf_levelflush++;
+#endif
     levelbatch_flush();
   }
 

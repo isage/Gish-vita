@@ -28,6 +28,16 @@ include_directories(${PROJECT_NAME}
 
 add_definitions(-DGLES)
 
+# Timing/logging instrumentation (the PERF_* reports in game.c and the
+# perf_bond_* probes in physics.c).  OFF by default: a release build compiles
+# it all out, so the binary contains no timers, no counters and no report
+# strings.  Configure with -DGISH_INSTRUMENT=ON when profiling.
+option(GISH_INSTRUMENT "Build the PERF_* timing instrumentation" OFF)
+if(GISH_INSTRUMENT)
+  add_definitions(-DGISH_INSTRUMENT)
+  message(STATUS "Gish: timing instrumentation ENABLED")
+endif()
+
 set(GISH_SOURCES    ${PROJECT_NAME}/audio/audio.c
                     ${PROJECT_NAME}/game/ai.c
                     ${PROJECT_NAME}/game/animation.c
@@ -109,7 +119,7 @@ target_link_libraries(${TARGET_NAME}
 
 set(VITA_APP_NAME "Gish")
 set(VITA_TITLEID  "GISH00001")
-set(VITA_VERSION  "01.00")
+set(VITA_VERSION  "01.40")
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE2=12")
 

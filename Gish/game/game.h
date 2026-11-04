@@ -93,9 +93,11 @@ extern int disable_frame;
 extern int fix_boss_logic_when_lights_off;
 extern float z_zoom;
 
-/* PERF INSTRUMENTATION (temporary) - sub-timers for bondsimulation2().
-   Plain C types only: this header is included from files that do not
-   include SDL. */
+#if defined(GISH_INSTRUMENT)
+/* Timing instrumentation - sub-timers for bondsimulation2().  Plain C types
+   only: this header is included from files that do not include SDL.  With
+   GISH_INSTRUMENT off (the release default) the probes disappear entirely, so
+   physics.c can keep its call sites unconditionally. */
 enum
 {
   PERFBOND_PRE = 0,  /* forceapplied zeroing + bondnormal/veclength/oomass  */
@@ -115,5 +117,9 @@ extern long long          perf_bond_temps;  /* sum of physicstemp.numofbonds */
 extern long long          perf_bond_itcnt[PERFBOND_TYPES];
 void                      perf_bond_start(void);
 void                      perf_bond_probe(int slot);
+#else
+#define perf_bond_start()  ((void)0)
+#define perf_bond_probe(s) ((void)0)
+#endif
 
 #endif /* GISH_GAME_GAME_H */
