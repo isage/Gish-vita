@@ -34,6 +34,19 @@ char textstring2[1024];
 char textstring3[1024];
 _font font;
 
+/* Screen-space drawing - the frame, HUD icons, menus and text - is not part of
+   the level, so it keeps whatever filtering its textures were loaded with,
+   even in the retro warp levels where settexturefiltering() switches every
+   level texture to GL_NEAREST.  Call right after the texture is bound. */
+static void useuitexture(int texturenum)
+{
+  if (!nearestfiltering)
+    return;
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture[texturenum].magfilter);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture[texturenum].minfilter);
+}
+
 void drawtext(char *textstring, int x, int y, int textsize, float red, float green, float blue, float alpha, ...)
 {
   int count, count2;
@@ -150,6 +163,7 @@ void drawtext(char *textstring, int x, int y, int textsize, float red, float gre
   y &= 0xFFFF;
 
   glBindTexture(GL_TEXTURE_2D, texture[1000 + font.texturenum].glname);
+  useuitexture(1000 + font.texturenum);
 
   count = 0;
   while (textstring2[count] != 0)
@@ -362,6 +376,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 
   // printf("drawing bg %d, %x\n", texturenum, texture[texturenum].glname);
   glBindTexture(GL_TEXTURE_2D, texture[texturenum].glname);
+  useuitexture(texturenum);
   // printf("bind %x\n", glGetError());
 
 #if defined(GLES)
@@ -452,6 +467,7 @@ void drawmousecursor(int texturenum, int x, int y, int textsize, float red, floa
     float vec[3];
 
     glBindTexture(GL_TEXTURE_2D, texture[texturenum].glname);
+    useuitexture(texturenum);
 
 #if defined(GLES)
     GLfloat quad[12];

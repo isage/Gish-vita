@@ -31,6 +31,7 @@ int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wrap
 void loadtexturetgapartial(int texturenum, char *filename, int startx, int starty, int sizex, int sizey);
 void generatemipmap(int texturenum);
 void setuptexture(int texturenum);
+void settexturefiltering(int nearest);
 
 typedef struct
 {
@@ -67,5 +68,6 @@ typedef struct
 extern char lasttextureloaded[32];
 extern _texture texture[2048];
 extern _tgaheader tgaheader;
+extern int nearestfiltering;
 
 #endif /* GISH_VIDEO_TEXTURE_H */

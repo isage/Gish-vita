@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../config.h"
 #include "../game/animation.h"
 #include "../game/boss.h"
+#include "../game/config.h"
 #include "../game/custom.h"
 #include "../game/editor.h"
 #include "../game/english.h"
@@ -194,6 +195,23 @@ void gameloop(void)
 
   setuplevel();
   setupgame();
+
+  /* Retro warp levels 64/65 sample every texture with GL_NEAREST.  These two
+     levels show much more of the world at once than the normal ones, so the
+     GL_LINEAR/mipmapped sampling blurs the pixel art; nearest keeps the
+     texels sharp.  Textures uploaded later in the level pick the flag up in
+     setuptexture(); the ones already on the GPU are switched here.  This runs
+     once per level, never per frame. */
+  nearestfiltering = (game.oldschool == 1 || game.oldschool == 2);
+  {
+    static int filtering_applied = -1;
+
+    if (filtering_applied != nearestfiltering)
+    {
+      settexturefiltering(nearestfiltering);
+      filtering_applied = nearestfiltering;
+    }
+  }
 
   simtimer = SDL_GetTicks();
 
@@ -545,10 +563,20 @@ void gameloop(void)
     // setuporthoviewport(0,0,640,480,view.zoom,view.zoom*0.5625f,20.0f);
     setupviewpoint(view.position, view.orientation);
 
-    if (game.oldschool == 1) // || game.oldschool==3)
-      glViewport(0, 0, 256, 256);
-    if (game.oldschool == 2)
-      glViewport(0, 0, 128, 128);
+    /* Retro pixelation (config.txt: warpzonepixelation=).  When it is on, the
+       level is drawn into a 256x256 (level 64) or 128x128 (level 65) corner of
+       the framebuffer, read back into a texture and drawn back magnified - see
+       the copy and the quad below.  When it is off, the viewport set by
+       setuporthoviewport() above is left alone, so the level renders
+       full-screen at native resolution and the expensive read-back in
+       glCopyTexImage2D never happens. */
+    if (config.warpzonepixelation)
+    {
+      if (game.oldschool == 1) // || game.oldschool==3)
+        glViewport(0, 0, 256, 256);
+      if (game.oldschool == 2)
+        glViewport(0, 0, 128, 128);
+    }
 
     soundsimulation(view.position, view.orientation);
 
@@ -587,56 +615,65 @@ void gameloop(void)
     renderlevelfore();
     PERF_SEC(9);
 
-    if (game.oldschool == 1) // || game.oldschool==3)
+    /* Retro pixelation read-back, only with warpzonepixelation=1.  This single
+       glCopyTexImage2D costs about 54 ms per frame on the Vita (the driver
+       reads the framebuffer back in software), which is the whole difference
+       between 60 fps and 13 fps in these two levels.  With the option off the
+       level has already been rendered full-screen above, so there is nothing
+       to read back or magnify. */
+    if (config.warpzonepixelation)
     {
-      glBindTexture(GL_TEXTURE_2D, texture[334].glname);
-      glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 256, 256, 0);
-    }
-    if (game.oldschool == 2)
-    {
-      glBindTexture(GL_TEXTURE_2D, texture[333].glname);
-      glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 128, 128, 0);
-    }
-
-    if (game.oldschool == 1 || game.oldschool == 2) // || game.oldschool==3)
-    {
-      setuptextdisplay();
-
       if (game.oldschool == 1) // || game.oldschool==3)
+      {
         glBindTexture(GL_TEXTURE_2D, texture[334].glname);
+        glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 256, 256, 0);
+      }
       if (game.oldschool == 2)
+      {
         glBindTexture(GL_TEXTURE_2D, texture[333].glname);
+        glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, 128, 128, 0);
+      }
+
+      if (game.oldschool == 1 || game.oldschool == 2) // || game.oldschool==3)
+      {
+        setuptextdisplay();
+
+        if (game.oldschool == 1) // || game.oldschool==3)
+          glBindTexture(GL_TEXTURE_2D, texture[334].glname);
+        if (game.oldschool == 2)
+          glBindTexture(GL_TEXTURE_2D, texture[333].glname);
 
 #if defined(GLES)
-      glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-      glEnableClientState(GL_VERTEX_ARRAY);
-      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-      GLfloat quad[] = {-1.0f, 0.75f, -1.0f, 1.0f, 0.75f, -1.0f, 1.0f, -0.75f, -1.0f, -1.0f, -0.75f, -1.0f};
-      GLfloat tx[]   = {0, 1, 1, 1, 1, 0, 0, 0};
-      glVertexPointer(3, GL_FLOAT, 0, quad);
-      glTexCoordPointer(2, GL_FLOAT, 0, tx);
-      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-      glDisableClientState(GL_VERTEX_ARRAY);
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        GLfloat quad[] = {-1.0f, 0.75f, -1.0f, 1.0f, 0.75f, -1.0f, 1.0f, -0.75f, -1.0f, -1.0f, -0.75f, -1.0f};
+        GLfloat tx[]   = {0, 1, 1, 1, 1, 0, 0, 0};
+        glVertexPointer(3, GL_FLOAT, 0, quad);
+        glTexCoordPointer(2, GL_FLOAT, 0, tx);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
 #else
-      glBegin(GL_QUADS);
+        glBegin(GL_QUADS);
 
-      glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
-      glTexCoord2f(0.0f, 1.0f);
-      glVertex3f(-1.0f, 0.75f, -1.0f);
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-1.0f, 0.75f, -1.0f);
 
-      glTexCoord2f(1.0f, 1.0f);
-      glVertex3f(1.0f, 0.75f, -1.0f);
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(1.0f, 0.75f, -1.0f);
 
-      glTexCoord2f(1.0f, 0.0f);
-      glVertex3f(1.0f, -0.75f, -1.0f);
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(1.0f, -0.75f, -1.0f);
 
-      glTexCoord2f(0.0f, 0.0f);
-      glVertex3f(-1.0f, -0.75f, -1.0f);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-1.0f, -0.75f, -1.0f);
 
-      glEnd();
+        glEnd();
 #endif
+      }
     }
     /* the retro levels render into a 256x256 / 128x128 texture and blit it
        back fullscreen: its own section, it used to disappear inside "rest" */

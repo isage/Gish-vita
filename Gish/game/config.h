@@ -46,6 +46,7 @@ typedef struct
   int turbomode;
   int lighting;
   int shadows;
+  int warpzonepixelation;
   int sound;
   int music;
   int joystick;
