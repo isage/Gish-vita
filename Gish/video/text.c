@@ -339,11 +339,15 @@ void setuptextdisplay(void)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  glViewport(renderareax, renderareay, renderareaw, renderareah);
+  /* In expand mode the HUD viewport is the whole screen and the frustum is
+     widened by hudfrustumscale, so the 640x480 design space keeps its 4:3
+     physical size and lands in the centred strip.  In every other mode
+     hudfrustumscale is 1.0 and this is exactly what it always was. */
+  glViewport(hudareax, hudareay, hudareaw, hudareah);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glFrustum(-1.0f, 1.0f, -0.75f, 0.75f, 1.0f, 1000.0f);
+  glFrustum(-hudfrustumscale, hudfrustumscale, -0.75f, 0.75f, 1.0f, 1000.0f);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();

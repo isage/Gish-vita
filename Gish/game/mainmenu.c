@@ -148,12 +148,31 @@ void mainmenu(void)
   loadbackground(600, "vsmode.tga");
   loadbackground(620, "storymode.tga");
 
-  loadtexturetgapartial(640, "border.tga", 0, 0, 256, 256);
-  loadtexturetgapartial(641, "border.tga", 256, 0, 256, 256);
-  loadtexturetgapartial(642, "border.tga", 512, 0, 256, 256);
-  loadtexturetgapartial(643, "border.tga", 0, 256, 256, 256);
-  loadtexturetgapartial(644, "border.tga", 256, 256, 256, 256);
-  loadtexturetgapartial(645, "border.tga", 512, 256, 256, 256);
+  if (config.keepaspect == 2)
+  {
+    /* 16:9 border for expand mode (847x480).  The last column (x=591) and row
+       (y=224) overlap the previous tile on purpose: 591 = 847-256 and
+       224 = 480-256, so every 256x256 block lies inside the image and no
+       uninitialised texels are ever sampled.  The overlap is entirely inside
+       the transparent hole, so double-drawing it is invisible. */
+    loadtexturetgapartial(640, "bordervita.tga", 0, 0, 256, 256);
+    loadtexturetgapartial(641, "bordervita.tga", 256, 0, 256, 256);
+    loadtexturetgapartial(642, "bordervita.tga", 512, 0, 256, 256);
+    loadtexturetgapartial(643, "bordervita.tga", 591, 0, 256, 256);
+    loadtexturetgapartial(644, "bordervita.tga", 0, 224, 256, 256);
+    loadtexturetgapartial(645, "bordervita.tga", 256, 224, 256, 256);
+    loadtexturetgapartial(646, "bordervita.tga", 512, 224, 256, 256);
+    loadtexturetgapartial(647, "bordervita.tga", 591, 224, 256, 256);
+  }
+  else
+  {
+    loadtexturetgapartial(640, "border.tga", 0, 0, 256, 256);
+    loadtexturetgapartial(641, "border.tga", 256, 0, 256, 256);
+    loadtexturetgapartial(642, "border.tga", 512, 0, 256, 256);
+    loadtexturetgapartial(643, "border.tga", 0, 256, 256, 256);
+    loadtexturetgapartial(644, "border.tga", 256, 256, 256, 256);
+    loadtexturetgapartial(645, "border.tga", 512, 256, 256, 256);
+  }
 
   loadtexturetga(820, "gishwin.tga", 0, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
   loadtexturetga(821, "graywin.tga", 0, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
@@ -410,6 +429,18 @@ void loadbackground(int texturenum, char *filename)
 
 void displaybackground(int texturenum)
 {
+  if (hudfrustumscale > 1.0f)
+  {
+    /* Expand mode: the widened HUD frustum would let these quads spill into
+       the side strips (their eye coords reach x = +1.56).  Clip the menu
+       background back to the central 4:3 strip so menus look exactly as they
+       do in 4:3 mode. */
+    int stripw = (windowinfo.resolutiony * 4) / 3;
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor((windowinfo.resolutionx - stripw) / 2, 0, stripw, windowinfo.resolutiony);
+  }
+
   drawbackground(texturenum, 0, 0, 256, 256, 800, 600);
   drawbackground(texturenum + 1, 256, 0, 256, 256, 800, 600);
   drawbackground(texturenum + 2, 512, 0, 256, 256, 800, 600);
@@ -422,6 +453,9 @@ void displaybackground(int texturenum)
   drawbackground(texturenum + 9, 256, 512, 256, 256, 800, 600);
   drawbackground(texturenum + 10, 512, 512, 256, 256, 800, 600);
   drawbackground(texturenum + 11, 768, 512, 256, 256, 800, 600);
+
+  if (hudfrustumscale > 1.0f)
+    glDisable(GL_SCISSOR_TEST);
 }
 
 void versusmenu(void)

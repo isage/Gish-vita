@@ -137,6 +137,8 @@ void loadconfig(void)
   config.stencilbits = 8;
   config.sound       = 1;
   config.music       = 1;
+  /* 0 = stretch the game to the whole screen, 1 = 4:3 strip (default),
+     2 = expand: full screen with a wider world box and square pixels */
   config.keepaspect  = 1;
   config.turbomode   = 0;
   config.lighting    = 1;

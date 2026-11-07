@@ -576,11 +576,26 @@ void gameloop(void)
     if (view.zoom < 4.0f)
       view.zoom = 4.0f;
 
-    view.zoomx = view.zoom + 0.5f;
     view.zoomy = view.zoom * 0.80f + 0.5f;
     // view.zoomy=view.zoom*0.5625f+0.5f;
 
-    setuporthoviewport(0, 0, 640, 480, view.zoom, view.zoom * 0.75f, 20.0f);
+    if (config.keepaspect == 2)
+    {
+      /* Expand mode: widen the world box to the render-area aspect, so one
+         world unit stays the same number of pixels horizontally and
+         vertically.  The vertical extent does not change - the extra width is
+         the whole point.  view.zoomx follows, so the tile and light loops and
+         the object culling in prerender.c cover the wider view. */
+      float halfwidth = view.zoom * 0.75f * (float)renderareaw / (float)renderareah;
+
+      view.zoomx = halfwidth + 0.5f;
+      setuporthoviewport(0, 0, 640, 480, halfwidth, view.zoom * 0.75f, 20.0f);
+    }
+    else
+    {
+      view.zoomx = view.zoom + 0.5f;
+      setuporthoviewport(0, 0, 640, 480, view.zoom, view.zoom * 0.75f, 20.0f);
+    }
     // setuporthoviewport(0,0,640,480,view.zoom,view.zoom*0.5625f,20.0f);
     setupviewpoint(view.position, view.orientation);
 
@@ -659,6 +674,13 @@ void gameloop(void)
       {
         setuptextdisplay();
 
+        /* The magnified quad is eye-space at z = -1 too, so in expand mode the
+           widened HUD frustum would leave it at 75.5% of the width.  Scale it
+           back out, exactly like the full-screen fades below.  The next
+           setuptextdisplay() (after the retro block) resets the modelview. */
+        glMatrixMode(GL_MODELVIEW);
+        glScalef(hudfrustumscale, 1.0f, 1.0f);
+
         if (game.oldschool == 1) // || game.oldschool==3)
           glBindTexture(GL_TEXTURE_2D, texture[334].glname);
         if (game.oldschool == 2)
@@ -719,6 +741,12 @@ void gameloop(void)
     {
       glDisable(GL_TEXTURE_2D);
 
+      /* These quads are eye-space at z = -1, so the widened expand-mode HUD
+         frustum would leave them at 75.5% of the screen width: scale the
+         modelview back out.  hudfrustumscale is 1.0 outside expand mode. */
+      glMatrixMode(GL_MODELVIEW);
+      glScalef(hudfrustumscale, 1.0f, 1.0f);
+
 #if !defined(GLES)
       glBegin(GL_QUADS);
 #endif
@@ -737,11 +765,17 @@ void gameloop(void)
 
       glEnd();
 #endif
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+      glMatrixMode(GL_TEXTURE);
       glEnable(GL_TEXTURE_2D);
     }
     if (game.exit == GAMEEXIT_DIED)
     {
       glDisable(GL_TEXTURE_2D);
+
+      glMatrixMode(GL_MODELVIEW);
+      glScalef(hudfrustumscale, 1.0f, 1.0f);
 
 #if !defined(GLES)
       glBegin(GL_QUADS);
@@ -764,6 +798,9 @@ void gameloop(void)
 
       glEnd();
 #endif
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+      glMatrixMode(GL_TEXTURE);
       glEnable(GL_TEXTURE_2D);
     }
 
@@ -774,12 +811,41 @@ void gameloop(void)
 
     if (!disable_frame)
     {
-      drawbackground(640, 0, 0, 256, 256, 640, 480);
-      drawbackground(641, 256, 0, 256, 256, 640, 480);
-      drawbackground(642, 512, 0, 256, 256, 640, 480);
-      drawbackground(643, 0, 256, 256, 256, 640, 480);
-      drawbackground(644, 256, 256, 256, 256, 640, 480);
-      drawbackground(645, 512, 256, 256, 256, 640, 480);
+      if (config.keepaspect == 2)
+      {
+        /* 16:9 border.  The art is 847x480 and the expand viewport is
+           847.45 design units wide (960px at 1.1328 px/unit), so drawing the
+           tiles 1:1 and shifting the run left by (847.45-640)/2 = 103.5 units
+           centres it exactly on the screen.  drawbackground() masks negative
+           x with 0xFFFF, so the shift is done with the modelview instead.
+           The last column (x=591) and row (y=224) overlap the previous tile
+           on purpose: every source block then lies inside the image, and the
+           only double-drawn area is the transparent hole. */
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(-103.5f / 320.0f, 0.0f, 0.0f);
+
+        drawbackground(640, 0, 0, 256, 256, 640, 480);
+        drawbackground(641, 256, 0, 256, 256, 640, 480);
+        drawbackground(642, 512, 0, 256, 256, 640, 480);
+        drawbackground(643, 591, 0, 256, 256, 640, 480);
+        drawbackground(644, 0, 224, 256, 256, 640, 480);
+        drawbackground(645, 256, 224, 256, 256, 640, 480);
+        drawbackground(646, 512, 224, 256, 256, 640, 480);
+        drawbackground(647, 591, 224, 256, 256, 640, 480);
+
+        glLoadIdentity();
+        glMatrixMode(GL_TEXTURE); /* the state the rest of the HUD expects */
+      }
+      else
+      {
+        drawbackground(640, 0, 0, 256, 256, 640, 480);
+        drawbackground(641, 256, 0, 256, 256, 640, 480);
+        drawbackground(642, 512, 0, 256, 256, 640, 480);
+        drawbackground(643, 0, 256, 256, 256, 640, 480);
+        drawbackground(644, 256, 256, 256, 256, 640, 480);
+        drawbackground(645, 512, 256, 256, 256, 640, 480);
+      }
     }
 
     // if (game.turbomode)
@@ -793,6 +859,9 @@ void gameloop(void)
       if (game.exitdelay < 20)
       {
         glDisable(GL_TEXTURE_2D);
+
+        glMatrixMode(GL_MODELVIEW);
+        glScalef(hudfrustumscale, 1.0f, 1.0f);
 #if !defined(GLES)
         glBegin(GL_QUADS);
 #endif
@@ -811,6 +880,9 @@ void gameloop(void)
 
         glEnd();
 #endif
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glMatrixMode(GL_TEXTURE);
         glEnable(GL_TEXTURE_2D);
       }
     if (movie.record)
