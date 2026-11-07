@@ -363,7 +363,12 @@ void convertscreenvertex(float vec[3], int resolutionx, int resolutiony)
   vec[2] = -1.0f;
 }
 
-void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int resolutionx, int resolutiony)
+/* Draws a quad that maps the sub-rectangle (u0,v0)-(u1,v1) of the texture onto
+   the screen rectangle (x,y)-(x+sizex,y+sizey).  u/v are 0..1 texture
+   coordinates, so a tile can be drawn partially without resampling it.
+   drawbackground() is this with the whole texture (0,0)-(1,1). */
+void drawbackgroundsub(int texturenum, int x, int y, int sizex, int sizey, float u0, float v0, float u1, float v1,
+                       int resolutionx, int resolutiony)
 {
   float vec[3];
 
@@ -385,7 +390,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 
 #if defined(GLES)
   GLfloat quad[12];
-  GLfloat tex[] = {0, 0, 1, 0, 1, 1, 0, 1};
+  GLfloat tex[] = {u0, v0, u1, v0, u1, v1, u0, v1};
   glEnableClientState(GL_VERTEX_ARRAY);
   // printf("enable client state %x\n", glGetError());
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -403,7 +408,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[1] = vec[1];
   quad[2] = vec[2];
 #else
-  glTexCoord2f(0.0f, 0.0f);
+  glTexCoord2f(u0, v0);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)(x + sizex);
@@ -416,7 +421,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[4] = vec[1];
   quad[5] = vec[2];
 #else
-  glTexCoord2f(1.0f, 0.0f);
+  glTexCoord2f(u1, v0);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)(x + sizex);
@@ -428,7 +433,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[7] = vec[1];
   quad[8] = vec[2];
 #else
-  glTexCoord2f(1.0f, 1.0f);
+  glTexCoord2f(u1, v1);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)x;
@@ -440,7 +445,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[10] = vec[1];
   quad[11] = vec[2];
 #else
-  glTexCoord2f(0.0f, 1.0f);
+  glTexCoord2f(u0, v1);
   glVertex3fv(vec);
 #endif
 
@@ -458,6 +463,11 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 #else
   glEnd();
 #endif
+}
+
+void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int resolutionx, int resolutiony)
+{
+  drawbackgroundsub(texturenum, x, y, sizex, sizey, 0.0f, 0.0f, 1.0f, 1.0f, resolutionx, resolutiony);
 }
 
 void drawmousecursor(int texturenum, int x, int y, int textsize, float red, float green, float blue, float alpha)

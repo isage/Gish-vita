@@ -813,26 +813,37 @@ void gameloop(void)
     {
       if (config.keepaspect == 2)
       {
-        /* 16:9 border.  The art is 847x480 and the expand viewport is
-           847.45 design units wide (960px at 1.1328 px/unit), so drawing the
-           tiles 1:1 and shifting the run left by (847.45-640)/2 = 103.5 units
-           centres it exactly on the screen.  drawbackground() masks negative
-           x with 0xFFFF, so the shift is done with the modelview instead.
-           The last column (x=591) and row (y=224) overlap the previous tile
-           on purpose: every source block then lies inside the image, and the
-           only double-drawn area is the transparent hole. */
+        /* 16:9 border, composed from the original 640x480 border.tga at draw
+           time -- there is no second border texture.  The frame is the first
+           568 columns followed by the last 279 (source 361..639), so those two
+           source ranges overlap by 207 columns and that band is drawn twice,
+           which widens the frame without resampling it.
+
+           The expand viewport is 847.45 design units wide (960px at 1.1328
+           px/unit), so the 1:1 run is shifted left by (847.45-640)/2 = 103.5
+           units.  drawbackgroundsub() masks negative x with 0xFFFF, so the
+           shift is done with the modelview instead.
+
+           Drawn as 5 pieces per row (split at the 256-texel tile boundaries):
+           dst 0..255, 256..511, 512..567 from the first range, then
+           568..718, 719..846 from the second.  No two quads overlap, so the
+           semi-transparent rim shadow is blended exactly once. */
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslatef(-103.5f / 320.0f, 0.0f, 0.0f);
 
-        drawbackground(640, 0, 0, 256, 256, 640, 480);
-        drawbackground(641, 256, 0, 256, 256, 640, 480);
-        drawbackground(642, 512, 0, 256, 256, 640, 480);
-        drawbackground(643, 591, 0, 256, 256, 640, 480);
-        drawbackground(644, 0, 224, 256, 256, 640, 480);
-        drawbackground(645, 256, 224, 256, 256, 640, 480);
-        drawbackground(646, 512, 224, 256, 256, 640, 480);
-        drawbackground(647, 591, 224, 256, 256, 640, 480);
+        /* top row: source y 0..255, texture v 0..1 */
+        drawbackgroundsub(640, 0, 0, 256, 256, 0.0f, 0.0f, 1.0f, 1.0f, 640, 480);
+        drawbackgroundsub(641, 256, 0, 256, 256, 0.0f, 0.0f, 1.0f, 1.0f, 640, 480);
+        drawbackgroundsub(642, 512, 0, 56, 256, 0.0f, 0.0f, 56.0f / 256.0f, 1.0f, 640, 480);
+        drawbackgroundsub(641, 568, 0, 151, 256, 105.0f / 256.0f, 0.0f, 1.0f, 1.0f, 640, 480);
+        drawbackgroundsub(642, 719, 0, 128, 256, 0.0f, 0.0f, 128.0f / 256.0f, 1.0f, 640, 480);
+        /* bottom row: source y 256..479, texture v 0..224/256 */
+        drawbackgroundsub(643, 0, 256, 256, 224, 0.0f, 0.0f, 1.0f, 224.0f / 256.0f, 640, 480);
+        drawbackgroundsub(644, 256, 256, 256, 224, 0.0f, 0.0f, 1.0f, 224.0f / 256.0f, 640, 480);
+        drawbackgroundsub(645, 512, 256, 56, 224, 0.0f, 0.0f, 56.0f / 256.0f, 224.0f / 256.0f, 640, 480);
+        drawbackgroundsub(644, 568, 256, 151, 224, 105.0f / 256.0f, 0.0f, 1.0f, 224.0f / 256.0f, 640, 480);
+        drawbackgroundsub(645, 719, 256, 128, 224, 0.0f, 0.0f, 128.0f / 256.0f, 224.0f / 256.0f, 640, 480);
 
         glLoadIdentity();
         glMatrixMode(GL_TEXTURE); /* the state the rest of the HUD expects */

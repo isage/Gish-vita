@@ -148,31 +148,17 @@ void mainmenu(void)
   loadbackground(600, "vsmode.tga");
   loadbackground(620, "storymode.tga");
 
-  if (config.keepaspect == 2)
-  {
-    /* 16:9 border for expand mode (847x480).  The last column (x=591) and row
-       (y=224) overlap the previous tile on purpose: 591 = 847-256 and
-       224 = 480-256, so every 256x256 block lies inside the image and no
-       uninitialised texels are ever sampled.  The overlap is entirely inside
-       the transparent hole, so double-drawing it is invisible. */
-    loadtexturetgapartial(640, "bordervita.tga", 0, 0, 256, 256);
-    loadtexturetgapartial(641, "bordervita.tga", 256, 0, 256, 256);
-    loadtexturetgapartial(642, "bordervita.tga", 512, 0, 256, 256);
-    loadtexturetgapartial(643, "bordervita.tga", 591, 0, 256, 256);
-    loadtexturetgapartial(644, "bordervita.tga", 0, 224, 256, 256);
-    loadtexturetgapartial(645, "bordervita.tga", 256, 224, 256, 256);
-    loadtexturetgapartial(646, "bordervita.tga", 512, 224, 256, 256);
-    loadtexturetgapartial(647, "bordervita.tga", 591, 224, 256, 256);
-  }
-  else
-  {
-    loadtexturetgapartial(640, "border.tga", 0, 0, 256, 256);
-    loadtexturetgapartial(641, "border.tga", 256, 0, 256, 256);
-    loadtexturetgapartial(642, "border.tga", 512, 0, 256, 256);
-    loadtexturetgapartial(643, "border.tga", 0, 256, 256, 256);
-    loadtexturetgapartial(644, "border.tga", 256, 256, 256, 256);
-    loadtexturetgapartial(645, "border.tga", 512, 256, 256, 256);
-  }
+  /* The 4:3 border is also the source for expand mode: the 16:9 frame is
+     composed from it at draw time in game.c (see the expand branch there), so
+     there is no second border texture.  6 tiles of 256x256: columns x=0/256/512,
+     rows y=0/256.  The art is 640x480, so the third column and the second row
+     only have 128/224 valid texels; the rest is never sampled. */
+  loadtexturetgapartial(640, "border.tga", 0, 0, 256, 256);
+  loadtexturetgapartial(641, "border.tga", 256, 0, 256, 256);
+  loadtexturetgapartial(642, "border.tga", 512, 0, 256, 256);
+  loadtexturetgapartial(643, "border.tga", 0, 256, 256, 256);
+  loadtexturetgapartial(644, "border.tga", 256, 256, 256, 256);
+  loadtexturetgapartial(645, "border.tga", 512, 256, 256, 256);
 
   loadtexturetga(820, "gishwin.tga", 0, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
   loadtexturetga(821, "graywin.tga", 0, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);

@@ -31,6 +31,8 @@ void drawtext(char *textstring, int textposx, int textposy, int textsize, float 
 void setuptextdisplay(void);
 void convertscreenvertex(float vec[3], int resolutionx, int resolutiony);
 void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int resolutionx, int resolutiony);
+void drawbackgroundsub(int texturenum, int x, int y, int sizex, int sizey, float u0, float v0, float u1, float v1,
+                       int resolutionx, int resolutiony);
 void drawmousecursor(int texturenum, int x, int y, int textsize, float red, float green, float blue, float alpha);
 
 typedef struct
