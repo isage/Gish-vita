@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.16)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
   if(DEFINED ENV{VITASDK})
@@ -15,13 +15,28 @@ project(Gish)
 set(TARGET_NAME ${PROJECT_NAME})
 
 find_package(SDL2 REQUIRED)
+# Use local SDL2 built with VIDEO_VITA_PVR=ON (real PVR/EGL backend), not the SDK build
+set_target_properties(SDL2::SDL2-static PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/libs/libSDL2.a"
+    IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/libs/libSDL2.a")
 find_package(OpenAL REQUIRED)
 
 include_directories(${PROJECT_NAME}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/pvr
                     ${SDL2_INCLUDE_DIR}
                     ${OPENAL_INCLUDE_DIR})
 
 add_definitions(-DGLES)
+
+# Timing/logging instrumentation (the PERF_* reports in game.c and the
+# perf_bond_* probes in physics.c).  OFF by default: a release build compiles
+# it all out, so the binary contains no timers, no counters and no report
+# strings.  Configure with -DGISH_INSTRUMENT=ON when profiling.
+option(GISH_INSTRUMENT "Build the PERF_* timing instrumentation" OFF)
+if(GISH_INSTRUMENT)
+  add_definitions(-DGISH_INSTRUMENT)
+  message(STATUS "Gish: timing instrumentation ENABLED")
+endif()
 
 set(GISH_SOURCES    ${PROJECT_NAME}/audio/audio.c
                     ${PROJECT_NAME}/game/ai.c
@@ -104,7 +119,7 @@ target_link_libraries(${TARGET_NAME}
 
 set(VITA_APP_NAME "Gish")
 set(VITA_TITLEID  "GISH00001")
-set(VITA_VERSION  "01.00")
+set(VITA_VERSION  "01.50")
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1")
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE2=12")
 
@@ -114,6 +129,7 @@ vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${TARGET_NAME}.self
     NAME ${VITA_APP_NAME}
     FILE sce_sys sce_sys
     FILE prx/libGLESv1_CM.suprx module/libGLESv1_CM.suprx
+    FILE prx/libGLESv2.suprx module/libGLESv2.suprx
     FILE prx/libgpu_es4_ext.suprx module/libgpu_es4_ext.suprx
     FILE prx/libIMGEGL.suprx module/libIMGEGL.suprx
     FILE prx/libpvrPSP2_WSEGL.suprx module/libpvrPSP2_WSEGL.suprx

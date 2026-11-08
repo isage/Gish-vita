@@ -46,4 +46,12 @@ typedef struct
 
 extern _frame frame;
 
+/* PERF INSTRUMENTATION: level pass counters, see render.c.  Only present with
+   -DGISH_INSTRUMENT=ON, so game.c's report block is the only user. */
+#if defined(GISH_INSTRUMENT)
+extern int perf_leveltiles;
+extern int perf_leveldraws;
+extern int perf_levelflush;
+#endif
+
 #endif /* GISH_GAME_RENDER_H */

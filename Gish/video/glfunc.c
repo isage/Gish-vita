@@ -38,8 +38,8 @@ void setupperspectiveviewport(int viewportx, int viewporty, int viewportwidth, i
   heightwidthratio = (float)viewportheight / (float)viewportwidth;
 
   viewporty      = font.sizey - (viewporty + viewportheight);
-  viewportx      = viewportx * windowinfo.resolutionx / font.sizex;
-  viewportwidth  = viewportwidth * windowinfo.resolutionx / font.sizex;
+  viewportx      = renderareax + viewportx * renderareaw / font.sizex;
+  viewportwidth  = viewportwidth * renderareaw / font.sizex;
   viewporty      = viewporty * windowinfo.resolutiony / font.sizey;
   viewportheight = viewportheight * windowinfo.resolutiony / font.sizey;
   glViewport(viewportx, viewporty, viewportwidth, viewportheight);
@@ -60,8 +60,8 @@ void setuporthoviewport(int viewportx, int viewporty, int viewportwidth, int vie
                         float length)
 {
   viewporty      = font.sizey - (viewporty + viewportheight);
-  viewportx      = viewportx * windowinfo.resolutionx / font.sizex;
-  viewportwidth  = viewportwidth * windowinfo.resolutionx / font.sizex;
+  viewportx      = renderareax + viewportx * renderareaw / font.sizex;
+  viewportwidth  = viewportwidth * renderareaw / font.sizex;
   viewporty      = viewporty * windowinfo.resolutiony / font.sizey;
   viewportheight = viewportheight * windowinfo.resolutiony / font.sizey;
   glViewport(viewportx, viewporty, viewportwidth, viewportheight);

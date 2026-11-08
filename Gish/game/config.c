@@ -137,6 +137,17 @@ void loadconfig(void)
   config.stencilbits = 8;
   config.sound       = 1;
   config.music       = 1;
+  /* 0 = stretch the game to the whole screen, 1 = 4:3 strip (default),
+     2 = expand: full screen with a wider world box and square pixels */
+  config.keepaspect  = 1;
+  config.turbomode   = 0;
+  config.lighting    = 1;
+  config.shadows     = 1;
+  /* Retro warp levels 64/65: 1 = the original low-resolution pixelation
+     effect (renders into a small corner of the framebuffer, then reads it back
+     into a texture and magnifies it - by far the most expensive frame in the
+     game).  0 = render those levels full-screen at native resolution. */
+  config.warpzonepixelation = 0;
 #ifndef ANDROID_NDK
   config.joystick = 1;
 #ifdef __vita__
@@ -213,6 +224,11 @@ void loadconfig(void)
   optionreadint(&config.sound, "sound=");
   optionreadint(&config.music, "music=");
   optionreadint(&config.joystick, "joystick=");
+  optionreadint(&config.keepaspect, "keepaspect=");
+  optionreadint(&config.turbomode, "turbomode=");
+  optionreadint(&config.lighting, "lighting=");
+  optionreadint(&config.shadows, "shadows=");
+  optionreadint(&config.warpzonepixelation, "warpzonepixelation=");
 
   optionreadint(&option.sound, "soundon=");
   optionreadint(&option.music, "musicon=");
@@ -284,6 +300,13 @@ void saveconfig(void)
   optionwriteint(fp, &config.sound, "sound=");
   optionwriteint(fp, &config.music, "music=");
   optionwriteint(fp, &config.joystick, "joystick=");
+  optionwriteint(fp, &config.keepaspect, "keepaspect=");
+  optionwriteint(fp, &config.turbomode, "turbomode=");
+  optionwriteint(fp, &config.lighting, "lighting=");
+  optionwriteint(fp, &config.shadows, "shadows=");
+  /* Must be written: saveconfig() rewrites config.txt from scratch on every
+     boot, so an option that is only read would erase the user's setting. */
+  optionwriteint(fp, &config.warpzonepixelation, "warpzonepixelation=");
 
   optionwriteint(fp, &option.sound, "soundon=");
   optionwriteint(fp, &option.music, "musicon=");

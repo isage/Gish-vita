@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../config.h"
 #include "../game/boss.h"
+#include "../game/config.h"
 #include "../game/game.h"
 #include "../game/gameobject.h"
 #include "../game/render.h"
@@ -45,6 +46,13 @@ void setuprenderobjects(void)
   float scale;
   float w;
 
+  /* Object culling bounds.  The tile and light loops already used
+     view.zoomx/zoomy, but this function was still written against view.zoom,
+     which is the 4:3 half-width.  Expand mode renders a wider box, so widen
+     the bound there and leave the 4:3 behaviour byte-for-byte as it was. */
+  float cullx = (config.keepaspect == 2) ? (float)(view.zoomx + 2) : view.zoom;
+  float cully = (config.keepaspect == 2) ? (float)(view.zoomy + 2) : view.zoom;
+
   numofobjectrenders = 0;
 
   for (count = 0; count < numofobjects; count++)
@@ -53,8 +61,8 @@ void setuprenderobjects(void)
       if (object[count].type == 8)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type  = 8;
             objectrender[numofobjectrenders].depth = -1.0f;
@@ -151,8 +159,8 @@ void setuprenderobjects(void)
       if (object[count].type == 10)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 2;
             objectrender[numofobjectrenders].depth      = 2.0f;
@@ -251,8 +259,8 @@ void setuprenderobjects(void)
       if (object[count].type == 1)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 1;
             objectrender[numofobjectrenders].depth      = 0.0f;
@@ -369,8 +377,8 @@ void setuprenderobjects(void)
       if (object[count].type == 2 || object[count].type == 20)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 2;
             objectrender[numofobjectrenders].depth      = 2.0f;
@@ -469,8 +477,8 @@ void setuprenderobjects(void)
       if (object[count].type == 3)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 3;
             objectrender[numofobjectrenders].depth      = 1.0f;
@@ -514,8 +522,8 @@ void setuprenderobjects(void)
       if (object[count].type == 4)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 4;
             objectrender[numofobjectrenders].depth      = 1.0f;
@@ -573,8 +581,8 @@ void setuprenderobjects(void)
     if (boss[count].texturenum != 0)
     {
       subtractvectors(vec, view.position, boss[count].position);
-      if (fabs(vec[0]) - 4.0f < view.zoom)
-        if (fabs(vec[1]) - 4.0f < view.zoom)
+      if (fabs(vec[0]) - 4.0f < cullx)
+        if (fabs(vec[1]) - 4.0f < cully)
         {
           objectrender[numofobjectrenders].type       = 4;
           objectrender[numofobjectrenders].depth      = 1.0f;
@@ -637,8 +645,8 @@ void setuprenderobjects(void)
       if (object[count].type == 5 || object[count].type == 6)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 5;
             objectrender[numofobjectrenders].depth      = 1.1f;
@@ -691,8 +699,8 @@ void setuprenderobjects(void)
       if (object[count].type == 9)
       {
         subtractvectors(vec, view.position, object[count].position);
-        if (fabs(vec[0]) - object[count].radius < view.zoom)
-          if (fabs(vec[1]) - object[count].radius < view.zoom)
+        if (fabs(vec[0]) - object[count].radius < cullx)
+          if (fabs(vec[1]) - object[count].radius < cully)
           {
             objectrender[numofobjectrenders].type       = 9;
             objectrender[numofobjectrenders].depth      = 2.0f;
@@ -746,8 +754,8 @@ void setuprenderobjects(void)
         scale = bond[rope[count].bondnum].length + 1.0f;
 
       subtractvectors(vec, view.position, particle[rope[count].part1].position);
-      if (fabs(vec[0]) - scale < view.zoom)
-        if (fabs(vec[1]) - scale < view.zoom)
+      if (fabs(vec[0]) - scale < cullx)
+        if (fabs(vec[1]) - scale < cully)
         {
           objectrender[numofobjectrenders].type       = 32;
           objectrender[numofobjectrenders].depth      = 3.0f + (float)count / 1000.0f;

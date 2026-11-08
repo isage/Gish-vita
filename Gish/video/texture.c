@@ -40,6 +40,45 @@ char lasttextureloaded[32];
 _texture texture[2048];
 _tgaheader tgaheader;
 
+/* 1 = every texture is sampled with GL_NEAREST in both directions, ignoring
+   the filters stored per texture.  The retro warp levels (64/65) turn it on
+   because they scale the world down much further than the normal levels do,
+   where GL_LINEAR/mipmapped sampling just blurs the pixel art. */
+int nearestfiltering = 0;
+
+/* Re-apply the filtering of every texture that already has a GL name.
+   GL_LINEAR/GL_NEAREST live in the texture object, not in the pixel data, so
+   this needs no re-upload; nearest=0 restores the filters stored in each
+   _texture.  Called once per level, never per frame. */
+void settexturefiltering(int nearest)
+{
+  int count;
+
+  for (count = 0; count < 2048; count++)
+  {
+    if (!texture[count].glname)
+      continue;
+
+    glBindTexture(GL_TEXTURE_2D, texture[count].glname);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, nearest ? GL_NEAREST : texture[count].magfilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, nearest ? GL_NEAREST : texture[count].minfilter);
+
+    if (texture[count].glnamenormal)
+    {
+      glBindTexture(GL_TEXTURE_2D, texture[count].glnamenormal);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, nearest ? GL_NEAREST : texture[count].magfilter);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, nearest ? GL_NEAREST : texture[count].minfilter);
+    }
+
+    if (texture[count].glnamegloss)
+    {
+      glBindTexture(GL_TEXTURE_2D, texture[count].glnamegloss);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, nearest ? GL_NEAREST : texture[count].magfilter);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, nearest ? GL_NEAREST : texture[count].minfilter);
+    }
+  }
+}
+
 int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, int wrapt, int magfilter, int minfilter)
 {
   int count, count2;
@@ -57,8 +96,7 @@ int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, in
 
   if ((fp = fopen(filepath, "rb")) == NULL)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: fopen error\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED fopen\n", texturenum, filename);
 
     return -1;
   }
@@ -68,8 +106,7 @@ int loadtexturetga_app(int texturenum, char *filename, int mipmap, int wraps, in
 
   if (tgaheader.imagetypecode != 2 && tgaheader.imagetypecode != 3)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: bad format\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED bad format\n", texturenum, filename);
 
     fclose(fp);
 
@@ -185,8 +222,7 @@ int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wrap
 
   if ((fp = fopen(filepath, "rb")) == NULL)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: fopen error\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED fopen\n", texturenum, filename);
 
     return -1;
   }
@@ -196,8 +232,7 @@ int loadtexturetga_internal(int texturenum, char *filename, int mipmap, int wrap
 
   if (tgaheader.imagetypecode != 2 && tgaheader.imagetypecode != 3)
   {
-    if (debug_texture_load)
-      printf("Texture #%d \"%s\" failed: bad format\n", texturenum, filename);
+    fprintf(stderr, "Texture #%d \"%s\" FAILED bad format\n", texturenum, filename);
 
     fclose(fp);
 
@@ -324,7 +359,7 @@ void loadtexturetgapartial(int texturenum, char *filename, int startx, int start
     if ((fp = fopen(filepath, "rb")) == NULL)
     {
       if (debug_texture_load)
-        printf("Texture Load Failed: %d\n", texturenum);
+        fprintf(stderr, "Texture Load Failed: %d\n", texturenum);
 
       return;
     }
@@ -521,13 +556,16 @@ void generatemipmap(int texturenum)
 void setuptexture(int texturenum)
 {
   int count, count2;
+  /* nearestfiltering overrides the per-texture filters (see above) */
+  int magfilter = nearestfiltering ? GL_NEAREST : texture[texturenum].magfilter;
+  int minfilter = nearestfiltering ? GL_NEAREST : texture[texturenum].minfilter;
 
   glBindTexture(GL_TEXTURE_2D, texture[texturenum].glname);
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture[texturenum].wraps);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture[texturenum].wrapt);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture[texturenum].magfilter);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture[texturenum].minfilter);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
 
   texture[texturenum].isalpha = 0;
 
@@ -567,8 +605,8 @@ void setuptexture(int texturenum)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture[texturenum].wraps);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture[texturenum].wrapt);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture[texturenum].magfilter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture[texturenum].minfilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
 
     for (count = 0; count < texture[texturenum].mipmaplevels; count++)
     {
@@ -584,8 +622,8 @@ void setuptexture(int texturenum)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture[texturenum].wraps);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture[texturenum].wrapt);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture[texturenum].magfilter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture[texturenum].minfilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magfilter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minfilter);
 
     for (count = 0; count < texture[texturenum].mipmaplevels; count++)
     {

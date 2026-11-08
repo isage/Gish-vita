@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "audio/audio.h"
 #include "config.h"
 #include "game/config.h"
+#include "game/game.h"
 #include "game/high.h"
 #include "game/mainmenu.h"
 #include "game/options.h"
@@ -55,6 +56,16 @@ const char *gl_vendor, *gl_renderer, *gl_version, *gl_extensions;
 
 char *gishDataPath = (char *)"ux0:/data/gish/";
 
+/* 4:3 render area inside the full framebuffer */
+int renderareax, renderareay, renderareaw, renderareah;
+
+/* Where the 640x480 HUD design space is mapped.  Identical to the render area
+   in 4:3 and stretched mode; in expand mode it is the whole screen and the
+   text frustum is widened by hudfrustumscale so the HUD keeps its physical
+   size and is merely centred. */
+int hudareax, hudareay, hudareaw, hudareah;
+float hudfrustumscale = 1.0f;
+
 int main(int argc, char *argv[])
 {
   int count;
@@ -71,6 +82,7 @@ int main(int argc, char *argv[])
   PVRSRVInitializeAppHint(&hint);
   PVRSRVCreateVirtualAppHint(&hint);
 */
+
   scePowerSetArmClockFrequency(444);
   scePowerSetGpuClockFrequency(222);
 
@@ -79,6 +91,10 @@ int main(int argc, char *argv[])
   loadconfig();
   loadscores();
   loadplayers();
+
+  /* lighting and shadow switches come from config.txt (lighting=, shadows=) */
+  lighting_enabled = config.lighting;
+  shadow_enabled   = config.shadows;
 
   flags = SDL_INIT_VIDEO | SDL_INIT_TIMER;
 
@@ -126,9 +142,15 @@ int main(int argc, char *argv[])
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+  /* rendershadows() only stamps stencil bits (one bit per light) and the light
+     passes skip pixels where that bit is set.  SDL defaults to 0 stencil bits,
+     so without this the marks are dropped, every stencil test passes and the
+     shadows are silently invisible.  8 bits = one per light. */
+  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, config.stencilbits);
 
   globalwindow = SDL_CreateWindow("Gish GLES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowinfo.resolutionx,
                                   windowinfo.resolutiony, SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL);
+  TO_DEBUG_LOG("CreateWindow -> %p err=[%s]\n", (void *)globalwindow, SDL_GetError());
 
   SDL_GLContext glc = SDL_GL_CreateContext(globalwindow);
 /*
@@ -152,6 +174,10 @@ int main(int argc, char *argv[])
 
   loadglextentions();
 
+  TO_DEBUG_LOG("GL ctx=%p err=[%s]\n", (void *)glc, SDL_GetError());
+  if (glc)
+    TO_DEBUG_LOG("GL_VERSION=[%s] RENDERER=[%s]\n", (const char *)glGetString(GL_VERSION),
+                 (const char *)glGetString(GL_RENDERER));
   for (count = 0; count < 2048; count++)
     glGenTextures(1, &texture[count].glname);
 
@@ -178,6 +204,43 @@ int main(int argc, char *argv[])
   font.cursornum  = 0;
   font.sizex      = 640;
   font.sizey      = 480;
+
+  if (config.keepaspect == 1)
+  {
+    /* 4:3 render area: width 725 fits the 960x544 framebuffer (544*4/3), centered */
+    renderareaw = 725;
+    renderareah = windowinfo.resolutiony;
+    renderareax = (windowinfo.resolutionx - renderareaw) / 2;
+    renderareay = (windowinfo.resolutiony - renderareah) / 2;
+  }
+  else
+  {
+    /* 0 = stretched, 2 = expand: either way the world fills the framebuffer */
+    renderareax = 0;
+    renderareay = 0;
+    renderareaw = windowinfo.resolutionx;
+    renderareah = windowinfo.resolutiony;
+  }
+
+  if (config.keepaspect == 2)
+  {
+    /* Expand mode: the HUD viewport covers the whole screen, but the text
+       frustum is widened by hudfrustumscale, so the 640x480 design space keeps
+       its 4:3 physical size and is merely centred (117px margin each side). */
+    hudareax = 0;
+    hudareay = 0;
+    hudareaw = windowinfo.resolutionx;
+    hudareah = windowinfo.resolutiony;
+    hudfrustumscale = (float)windowinfo.resolutionx / 725.0f;
+  }
+  else
+  {
+    hudareax = renderareax;
+    hudareay = renderareay;
+    hudareaw = renderareaw;
+    hudareah = renderareah;
+    hudfrustumscale = 1.0f;
+  }
 
   loadtexturetga_app(1000, "font00.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);
   loadtexturetga(1001, "font01.tga", 0, GL_CLAMP, GL_CLAMP, GL_LINEAR, GL_LINEAR);

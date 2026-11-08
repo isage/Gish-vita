@@ -34,6 +34,19 @@ char textstring2[1024];
 char textstring3[1024];
 _font font;
 
+/* Screen-space drawing - the frame, HUD icons, menus and text - is not part of
+   the level, so it keeps whatever filtering its textures were loaded with,
+   even in the retro warp levels where settexturefiltering() switches every
+   level texture to GL_NEAREST.  Call right after the texture is bound. */
+static void useuitexture(int texturenum)
+{
+  if (!nearestfiltering)
+    return;
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture[texturenum].magfilter);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture[texturenum].minfilter);
+}
+
 void drawtext(char *textstring, int x, int y, int textsize, float red, float green, float blue, float alpha, ...)
 {
   int count, count2;
@@ -150,6 +163,7 @@ void drawtext(char *textstring, int x, int y, int textsize, float red, float gre
   y &= 0xFFFF;
 
   glBindTexture(GL_TEXTURE_2D, texture[1000 + font.texturenum].glname);
+  useuitexture(1000 + font.texturenum);
 
   count = 0;
   while (textstring2[count] != 0)
@@ -325,11 +339,15 @@ void setuptextdisplay(void)
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  glViewport(0, 0, windowinfo.resolutionx, windowinfo.resolutiony);
+  /* In expand mode the HUD viewport is the whole screen and the frustum is
+     widened by hudfrustumscale, so the 640x480 design space keeps its 4:3
+     physical size and lands in the centred strip.  In every other mode
+     hudfrustumscale is 1.0 and this is exactly what it always was. */
+  glViewport(hudareax, hudareay, hudareaw, hudareah);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glFrustum(-1.0f, 1.0f, -0.75f, 0.75f, 1.0f, 1000.0f);
+  glFrustum(-hudfrustumscale, hudfrustumscale, -0.75f, 0.75f, 1.0f, 1000.0f);
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
@@ -345,7 +363,12 @@ void convertscreenvertex(float vec[3], int resolutionx, int resolutiony)
   vec[2] = -1.0f;
 }
 
-void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int resolutionx, int resolutiony)
+/* Draws a quad that maps the sub-rectangle (u0,v0)-(u1,v1) of the texture onto
+   the screen rectangle (x,y)-(x+sizex,y+sizey).  u/v are 0..1 texture
+   coordinates, so a tile can be drawn partially without resampling it.
+   drawbackground() is this with the whole texture (0,0)-(1,1). */
+void drawbackgroundsub(int texturenum, int x, int y, int sizex, int sizey, float u0, float v0, float u1, float v1,
+                       int resolutionx, int resolutiony)
 {
   float vec[3];
 
@@ -362,11 +385,12 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 
   // printf("drawing bg %d, %x\n", texturenum, texture[texturenum].glname);
   glBindTexture(GL_TEXTURE_2D, texture[texturenum].glname);
+  useuitexture(texturenum);
   // printf("bind %x\n", glGetError());
 
 #if defined(GLES)
   GLfloat quad[12];
-  GLfloat tex[] = {0, 0, 1, 0, 1, 1, 0, 1};
+  GLfloat tex[] = {u0, v0, u1, v0, u1, v1, u0, v1};
   glEnableClientState(GL_VERTEX_ARRAY);
   // printf("enable client state %x\n", glGetError());
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -384,7 +408,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[1] = vec[1];
   quad[2] = vec[2];
 #else
-  glTexCoord2f(0.0f, 0.0f);
+  glTexCoord2f(u0, v0);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)(x + sizex);
@@ -397,7 +421,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[4] = vec[1];
   quad[5] = vec[2];
 #else
-  glTexCoord2f(1.0f, 0.0f);
+  glTexCoord2f(u1, v0);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)(x + sizex);
@@ -409,7 +433,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[7] = vec[1];
   quad[8] = vec[2];
 #else
-  glTexCoord2f(1.0f, 1.0f);
+  glTexCoord2f(u1, v1);
   glVertex3fv(vec);
 #endif
   vec[0] = (float)x;
@@ -421,7 +445,7 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
   quad[10] = vec[1];
   quad[11] = vec[2];
 #else
-  glTexCoord2f(0.0f, 1.0f);
+  glTexCoord2f(u0, v1);
   glVertex3fv(vec);
 #endif
 
@@ -441,13 +465,23 @@ void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int reso
 #endif
 }
 
+void drawbackground(int texturenum, int x, int y, int sizex, int sizey, int resolutionx, int resolutiony)
+{
+  drawbackgroundsub(texturenum, x, y, sizex, sizey, 0.0f, 0.0f, 1.0f, 1.0f, resolutionx, resolutiony);
+}
+
 void drawmousecursor(int texturenum, int x, int y, int textsize, float red, float green, float blue, float alpha)
 {
+#ifdef __vita__
+  /* Vita port: no mouse cursor. */
+  return;
+#endif
   if (!touchcontrols)
   {
     float vec[3];
 
     glBindTexture(GL_TEXTURE_2D, texture[texturenum].glname);
+    useuitexture(texturenum);
 
 #if defined(GLES)
     GLfloat quad[12];

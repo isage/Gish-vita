@@ -148,6 +148,11 @@ void mainmenu(void)
   loadbackground(600, "vsmode.tga");
   loadbackground(620, "storymode.tga");
 
+  /* The 4:3 border is also the source for expand mode: the 16:9 frame is
+     composed from it at draw time in game.c (see the expand branch there), so
+     there is no second border texture.  6 tiles of 256x256: columns x=0/256/512,
+     rows y=0/256.  The art is 640x480, so the third column and the second row
+     only have 128/224 valid texels; the rest is never sampled. */
   loadtexturetgapartial(640, "border.tga", 0, 0, 256, 256);
   loadtexturetgapartial(641, "border.tga", 256, 0, 256, 256);
   loadtexturetgapartial(642, "border.tga", 512, 0, 256, 256);
@@ -272,7 +277,7 @@ void mainmenu(void)
   resetmenuitems();
 
   joymenunum     = 1;
-  game.turbomode = 1;
+  game.turbomode = config.turbomode;
 
   while (!menuitem[0].active && !windowinfo.shutdown)
   {
@@ -410,6 +415,18 @@ void loadbackground(int texturenum, char *filename)
 
 void displaybackground(int texturenum)
 {
+  if (hudfrustumscale > 1.0f)
+  {
+    /* Expand mode: the widened HUD frustum would let these quads spill into
+       the side strips (their eye coords reach x = +1.56).  Clip the menu
+       background back to the central 4:3 strip so menus look exactly as they
+       do in 4:3 mode. */
+    int stripw = (windowinfo.resolutiony * 4) / 3;
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor((windowinfo.resolutionx - stripw) / 2, 0, stripw, windowinfo.resolutiony);
+  }
+
   drawbackground(texturenum, 0, 0, 256, 256, 800, 600);
   drawbackground(texturenum + 1, 256, 0, 256, 256, 800, 600);
   drawbackground(texturenum + 2, 512, 0, 256, 256, 800, 600);
@@ -422,6 +439,9 @@ void displaybackground(int texturenum)
   drawbackground(texturenum + 9, 256, 512, 256, 256, 800, 600);
   drawbackground(texturenum + 10, 512, 512, 256, 256, 800, 600);
   drawbackground(texturenum + 11, 768, 512, 256, 256, 800, 600);
+
+  if (hudfrustumscale > 1.0f)
+    glDisable(GL_SCISSOR_TEST);
 }
 
 void versusmenu(void)

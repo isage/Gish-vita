@@ -53,7 +53,7 @@ ALenum oggformat;
 char oggdata[OGGBUFFERSIZE];
 
 ALuint oggsource;
-ALuint oggbuffer[2];
+ALuint oggbuffer[OGGNUMBUFFERS];
 
 void setupaudio(void)
 {
@@ -78,7 +78,7 @@ void setupaudio(void)
   if (!soundenabled)
     return;
 
-  for (count = 0; count < 2; count++)
+  for (count = 0; count < OGGNUMBUFFERS; count++)
     alGenBuffers(1, &oggbuffer[count]);
   for (count = 0; count < 30; count++)
     alGenBuffers(1, &soundbuffer[count]);
@@ -185,7 +185,9 @@ int updateogg(void)
 
   alGetSourcei(oggsource, AL_BUFFERS_PROCESSED, &processed);
 
-  while (processed > 0)
+  /* Decode at most one buffer per call, so a refill costs a small slice of a
+     frame instead of ~12 ms inside whichever routine happened to call us. */
+  if (processed > 0)
   {
     alSourceUnqueueBuffers(oggsource, 1, &buffernum);
 
@@ -193,8 +195,6 @@ int updateogg(void)
 
     if (active)
       alSourceQueueBuffers(oggsource, 1, &buffernum);
-
-    processed--;
   }
   if (!active)
   {

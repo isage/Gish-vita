@@ -39,6 +39,16 @@ void checkmouse(void)
   buttons = SDL_GetMouseState(&mouse.x, &mouse.y);
   mouse.x = mouse.x * 640 / windowinfo.resolutionx;
   mouse.y = mouse.y * 480 / windowinfo.resolutiony;
+#ifdef __vita__
+  /* No physical mouse on Vita: with nothing touched, SDL_GetMouseState leaves the phantom
+     cursor parked at (0,0) - exactly inside the "Back" item (top-left of every menu).
+     That made Back permanently render as hovered/selected. Park it off-screen instead. */
+  if (buttons == 0)
+  {
+    mouse.x = -1;
+    mouse.y = -1;
+  }
+#endif
 
   mouse.xdif = mouse.x - prevmouse.x;
   mouse.ydif = mouse.y - prevmouse.y;
